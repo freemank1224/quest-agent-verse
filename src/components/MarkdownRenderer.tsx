@@ -29,7 +29,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       const elements = document.querySelectorAll('.mermaid');
       
       if (elements.length > 0) {
-        mermaid.init(undefined, elements);
+        // Type assertion to address TypeScript error
+        mermaid.init(undefined, elements as NodeListOf<HTMLElement>);
         // Force a re-render to ensure mermaid diagrams are properly displayed
         setKey(prev => prev + 1);
       }

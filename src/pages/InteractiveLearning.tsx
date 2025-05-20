@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Speaker, SpeakerWave, SpeakerOff } from "lucide-react";
+import { Speaker, Volume2, VolumeX } from "lucide-react";
 import Navbar from '@/components/Navbar';
 import ChatInput from '@/components/ChatInput';
 import ChatBubble from '@/components/ChatBubble';
@@ -156,9 +156,9 @@ const InteractiveLearning = () => {
                     className="mb-2"
                   >
                     {isSpeakerOn ? (
-                      <Speaker className="h-4 w-4" />
+                      <Volume2 className="h-4 w-4" />
                     ) : (
-                      <SpeakerOff className="h-4 w-4" />
+                      <VolumeX className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
