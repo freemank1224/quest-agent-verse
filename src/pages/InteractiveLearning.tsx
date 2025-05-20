@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Speaker, SpeakerOff } from "lucide-react";
+import { Speaker, SpeakerWave, SpeakerOff } from "lucide-react";
 import Navbar from '@/components/Navbar';
 import ChatInput from '@/components/ChatInput';
 import ChatBubble from '@/components/ChatBubble';

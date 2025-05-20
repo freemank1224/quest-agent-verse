@@ -51,7 +51,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
               </pre>
             );
           },
-          code({ node, inline, className, children, ...props }) {
+          code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             
             // Handle Mermaid diagrams
@@ -61,12 +61,15 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
               );
             }
             
-            return !inline ? (
-              <code className={className} {...props}>
+            // Check if it's an inline code block based on className
+            const isInline = !className || !className.includes('language-');
+            
+            return isInline ? (
+              <code className="inline-code" {...props}>
                 {children}
               </code>
             ) : (
-              <code className="inline-code" {...props}>
+              <code className={className} {...props}>
                 {children}
               </code>
             );
