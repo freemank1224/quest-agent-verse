@@ -4,12 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useChat } from '@/contexts/ChatContext';
+import { useAuth } from '@/contexts/AuthContext';
+import Navbar from '@/components/Navbar';
 
 const Index = () => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const navigate = useNavigate();
   const { setInitialPrompt } = useChat();
+  const { user } = useAuth();
 
   const handleSubmit = () => {
     if (!prompt.trim()) return;
@@ -25,8 +28,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-grow flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Navbar />
+      
+      <main className="flex-grow flex items-center justify-center">
         <div className="max-w-3xl w-full px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl font-display">
@@ -37,14 +42,14 @@ const Index = () => {
             </p>
           </div>
           
-          <div className="bg-white shadow-lg rounded-xl p-8 max-w-2xl mx-auto">
+          <div className="bg-white shadow-lg rounded-xl p-8 max-w-2xl mx-auto border border-gray-200">
             <h2 className="text-2xl font-bold mb-6 text-center font-display">今天你想了解什么？</h2>
             
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="例如：我想学习高中物理中的力学知识..."
-              className="min-h-[120px] mb-6"
+              className="min-h-[120px] mb-6 bg-gray-50 border border-gray-200"
             />
             
             <div className="flex justify-center">
@@ -59,6 +64,25 @@ const Index = () => {
                 {isGenerating ? '正在生成...' : '去探索'}
               </Button>
             </div>
+            
+            {!user && (
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <p className="text-center text-gray-600 mb-4">创建账户以保存您的学习进度和个性化推荐</p>
+                <div className="flex justify-center space-x-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/auth')}
+                  >
+                    登录
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/auth')}
+                  >
+                    注册账户
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="mt-12 text-center">

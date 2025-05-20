@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,12 @@ import { useChat } from '@/contexts/ChatContext';
 import { getUserProgress } from '@/services/api';
 import { toast } from '@/components/ui/sonner';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
 
 const InteractiveLearning = () => {
   const navigate = useNavigate();
   const { messages, initialPrompt, addMessage } = useChat();
+  const { user } = useAuth();
   const [userProgress, setUserProgress] = useState<any>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
@@ -70,7 +73,7 @@ const InteractiveLearning = () => {
         <ResizablePanelGroup direction="horizontal">
           {/* Left sidebar - Learning resources */}
           <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-            <div className="h-[calc(100vh-4rem)] p-4 overflow-y-auto bg-white">
+            <div className="h-[calc(100vh-4rem)] p-4 overflow-y-auto bg-white border-r border-gray-200">
               <h2 className="text-xl font-bold mb-4 font-display">学习资源</h2>
               
               {isLoadingProgress ? (
@@ -81,14 +84,14 @@ const InteractiveLearning = () => {
               ) : userProgress ? (
                 <div className="space-y-6">
                   {/* Course progress */}
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <h3 className="font-medium text-gray-900 mb-2">学习进度</h3>
                     <Progress value={userProgress.progressPercentage} className="h-2 mb-2" />
                     <p className="text-sm text-gray-600">已完成 {userProgress.progressPercentage}%</p>
                   </div>
                   
                   {/* Achievements */}
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <h3 className="font-medium text-gray-900 mb-2">成就列表</h3>
                     <ul className="space-y-2">
                       {userProgress.achievements.map((achievement: any) => (
@@ -104,15 +107,31 @@ const InteractiveLearning = () => {
                   </div>
                   
                   {/* Knowledge graph placeholder */}
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <h3 className="font-medium text-gray-900 mb-2">知识图谱</h3>
                     <div className="text-sm text-gray-600">
                       这里将显示与您的学习相关的知识图谱，帮助您理解概念间的关联。
                     </div>
-                    <div className="mt-2 h-32 bg-gray-200 rounded flex items-center justify-center">
+                    <div className="mt-2 h-32 bg-gray-100 rounded flex items-center justify-center border border-gray-200">
                       <p className="text-gray-500 text-sm">知识图谱预览区域</p>
                     </div>
                   </div>
+                  
+                  {!user && (
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                      <h3 className="font-medium text-gray-900 mb-2">保存您的进度</h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        创建一个账户以保存您的学习进度并获得个性化推荐。
+                      </p>
+                      <Button 
+                        onClick={() => navigate('/auth')} 
+                        size="sm" 
+                        className="w-full"
+                      >
+                        登录 / 注册
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-gray-500">无法加载学习资源</p>
@@ -126,8 +145,8 @@ const InteractiveLearning = () => {
           <ResizablePanel defaultSize={75}>
             <div className="relative h-[calc(100vh-4rem)] flex flex-col">
               {/* Top floating panel - Image display */}
-              <div className="sticky top-0 z-10 bg-white shadow-md p-3">
-                <div className="aspect-[2/1] bg-gray-100 rounded-lg overflow-hidden">
+              <div className="sticky top-0 z-10 bg-white shadow-md p-3 border-b border-gray-200">
+                <div className="aspect-[2/1] bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
                   <img
                     src={currentImageUrl}
                     alt="学习相关图片"
@@ -139,7 +158,7 @@ const InteractiveLearning = () => {
               {/* Main chat area */}
               <div 
                 ref={chatContainerRef}
-                className="flex-grow overflow-y-auto px-4 py-6 space-y-4"
+                className="flex-grow overflow-y-auto px-4 py-6 space-y-4 bg-gray-50"
               >
                 {messages.map((message) => (
                   <ChatBubble key={message.id} message={message} />
@@ -147,7 +166,7 @@ const InteractiveLearning = () => {
               </div>
               
               {/* Bottom floating panel - Chat input */}
-              <div className="sticky bottom-0 z-10 bg-white shadow-md p-4 border-t">
+              <div className="sticky bottom-0 z-10 bg-white shadow-md p-4 border-t border-gray-200">
                 <div className="flex justify-end mb-2">
                   <Button
                     variant="outline"
