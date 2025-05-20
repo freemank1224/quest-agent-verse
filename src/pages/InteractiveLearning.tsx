@@ -1,0 +1,179 @@
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Speaker, SpeakerOff } from "lucide-react";
+import Navbar from '@/components/Navbar';
+import ChatInput from '@/components/ChatInput';
+import ChatBubble from '@/components/ChatBubble';
+import LoadingPlaceholder from '@/components/LoadingPlaceholder';
+import { useChat } from '@/contexts/ChatContext';
+import { getUserProgress } from '@/services/api';
+import { toast } from '@/components/ui/sonner';
+import { Progress } from '@/components/ui/progress';
+
+const InteractiveLearning = () => {
+  const navigate = useNavigate();
+  const { messages, initialPrompt, addMessage } = useChat();
+  const [userProgress, setUserProgress] = useState<any>(null);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState('https://source.unsplash.com/random/800x400/?education');
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!initialPrompt) {
+      toast.error('请先输入您想学习的内容');
+      navigate('/');
+    }
+  }, [initialPrompt, navigate]);
+
+  useEffect(() => {
+    const fetchUserProgress = async () => {
+      try {
+        setIsLoadingProgress(true);
+        const data = await getUserProgress();
+        setUserProgress(data);
+      } catch (error) {
+        console.error('Error fetching user progress:', error);
+      } finally {
+        setIsLoadingProgress(false);
+      }
+    };
+
+    fetchUserProgress();
+
+    // Add a welcome message if there are no messages
+    if (messages.length === 0 && initialPrompt) {
+      const welcomeMessage = `欢迎来到"${initialPrompt}"的互动学习！我是您的AI学习助手，可以帮助您回答问题、解释概念、提供练习题等。请问有什么我可以帮助您的？`;
+      addMessage(welcomeMessage, 'agent');
+    }
+  }, []);
+
+  useEffect(() => {
+    // Scroll to the bottom when messages change
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const toggleSpeaker = () => {
+    setIsSpeakerOn(!isSpeakerOn);
+    toast.info(isSpeakerOn ? '已关闭文本朗读' : '已开启文本朗读');
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Navbar />
+      
+      <div className="flex-grow flex">
+        <ResizablePanelGroup direction="horizontal">
+          {/* Left sidebar - Learning resources */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+            <div className="h-[calc(100vh-4rem)] p-4 overflow-y-auto bg-white">
+              <h2 className="text-xl font-bold mb-4 font-display">学习资源</h2>
+              
+              {isLoadingProgress ? (
+                <div className="space-y-6">
+                  <LoadingPlaceholder />
+                  <LoadingPlaceholder lines={5} />
+                </div>
+              ) : userProgress ? (
+                <div className="space-y-6">
+                  {/* Course progress */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-2">学习进度</h3>
+                    <Progress value={userProgress.progressPercentage} className="h-2 mb-2" />
+                    <p className="text-sm text-gray-600">已完成 {userProgress.progressPercentage}%</p>
+                  </div>
+                  
+                  {/* Achievements */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-2">成就列表</h3>
+                    <ul className="space-y-2">
+                      {userProgress.achievements.map((achievement: any) => (
+                        <li key={achievement.id} className="flex items-center">
+                          <span className="h-2 w-2 bg-green-500 rounded-full mr-2"></span>
+                          <div>
+                            <p className="text-sm font-medium">{achievement.title}</p>
+                            <p className="text-xs text-gray-600">{achievement.description}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  {/* Knowledge graph placeholder */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-medium text-gray-900 mb-2">知识图谱</h3>
+                    <div className="text-sm text-gray-600">
+                      这里将显示与您的学习相关的知识图谱，帮助您理解概念间的关联。
+                    </div>
+                    <div className="mt-2 h-32 bg-gray-200 rounded flex items-center justify-center">
+                      <p className="text-gray-500 text-sm">知识图谱预览区域</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500">无法加载学习资源</p>
+              )}
+            </div>
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle />
+          
+          {/* Right panel - Chat interface */}
+          <ResizablePanel defaultSize={75}>
+            <div className="relative h-[calc(100vh-4rem)] flex flex-col">
+              {/* Top floating panel - Image display */}
+              <div className="sticky top-0 z-10 bg-white shadow-md p-3">
+                <div className="aspect-[2/1] bg-gray-100 rounded-lg overflow-hidden">
+                  <img
+                    src={currentImageUrl}
+                    alt="学习相关图片"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+              
+              {/* Main chat area */}
+              <div 
+                ref={chatContainerRef}
+                className="flex-grow overflow-y-auto px-4 py-6 space-y-4"
+              >
+                {messages.map((message) => (
+                  <ChatBubble key={message.id} message={message} />
+                ))}
+              </div>
+              
+              {/* Bottom floating panel - Chat input */}
+              <div className="sticky bottom-0 z-10 bg-white shadow-md p-4 border-t">
+                <div className="flex justify-end mb-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={toggleSpeaker}
+                    className="mb-2"
+                  >
+                    {isSpeakerOn ? (
+                      <Speaker className="h-4 w-4" />
+                    ) : (
+                      <SpeakerOff className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <ChatInput 
+                  onSpeakerToggle={toggleSpeaker}
+                  isSpeakerOn={isSpeakerOn}
+                />
+              </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+    </div>
+  );
+};
+
+export default InteractiveLearning;

@@ -1,12 +1,73 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useChat } from '@/contexts/ChatContext';
 
 const Index = () => {
+  const [prompt, setPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const navigate = useNavigate();
+  const { setInitialPrompt } = useChat();
+
+  const handleSubmit = () => {
+    if (!prompt.trim()) return;
+    
+    setIsGenerating(true);
+    setInitialPrompt(prompt);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setIsGenerating(false);
+      navigate('/course-planning');
+    }, 2000);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-grow flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="max-w-3xl w-full px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl font-display">
+              智能学习助手
+            </h1>
+            <p className="mt-4 text-xl text-gray-600">
+              个性化学习体验，AI 支持的教育平台
+            </p>
+          </div>
+          
+          <div className="bg-white shadow-lg rounded-xl p-8 max-w-2xl mx-auto">
+            <h2 className="text-2xl font-bold mb-6 text-center font-display">今天你想了解什么？</h2>
+            
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="例如：我想学习高中物理中的力学知识..."
+              className="min-h-[120px] mb-6"
+            />
+            
+            <div className="flex justify-center">
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!prompt.trim() || isGenerating}
+                size="lg"
+                className={`gradient-bg font-medium transition-all duration-300 animate-flow-right ${
+                  isGenerating ? 'opacity-90' : 'hover:shadow-lg'
+                }`}
+              >
+                {isGenerating ? '正在生成...' : '去探索'}
+              </Button>
+            </div>
+          </div>
+          
+          <div className="mt-12 text-center">
+            <p className="text-gray-600">
+              开启您的个性化学习之旅，获得量身定制的课程内容
+            </p>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
