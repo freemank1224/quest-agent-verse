@@ -13,7 +13,7 @@ const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
 }) => {
   return (
     <div className="sticky bottom-4 z-10 mx-4">
-      <div className="backdrop-blur-md bg-white/70 rounded-lg shadow-md p-4 border border-gray-100">
+      <div className="glass-effect rounded-lg shadow-md p-4">
         <ChatInput 
           onSpeakerToggle={onSpeakerToggle}
           isSpeakerOn={isSpeakerOn}

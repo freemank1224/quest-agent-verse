@@ -134,19 +134,36 @@
   @apply bg-white text-gray-800 rounded-tl-none;
 }
 
-/* Frosted glass effect */
+/* 毛玻璃效果 */
 .backdrop-blur-md {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Rainbow flowing lines for home page background - updated for thinner lines and smoother animations */
-.rainbow-bg {
+.glass-effect {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+}
+
+/* 移除旧的彩虹流动线 */
+.rainbow-flow-container {
+  display: none;
+}
+
+.rainbow-flow-line {
+  display: none;
+}
+
+/* 全新的曲线流动彩虹背景 */
+.curved-lines-bg {
   position: relative;
   overflow: hidden;
 }
 
-.rainbow-flow-container {
+.curved-lines-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -156,89 +173,272 @@
   overflow: hidden;
 }
 
-.rainbow-flow-line {
+.curved-line {
   position: absolute;
   height: 1px;
-  width: 110%;
-  left: -5%;
-  opacity: 0.2;
-  z-index: 1;
+  width: 100%;
+  opacity: 0.4;
   transform-origin: center;
 }
 
-.rainbow-flow-line:nth-child(1) {
+/* 创建多条曲线，每条都有不同的路径和颜色 */
+.curved-line:nth-child(1) {
   top: 15%;
-  background: linear-gradient(90deg, transparent 0%, #33C3F0 20%, #0EA5E9 30%, #8B5CF6 60%, #6366F1 80%, transparent 100%);
-  animation: flow-wave 24s ease-in-out infinite alternate;
-  animation-delay: 0s;
+  background: none;
 }
 
-.rainbow-flow-line:nth-child(2) {
+.curved-line:nth-child(1)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #33C3F0 20%, #0EA5E9 40%, #8B5CF6 70%, #6366F1 90%, transparent 100%);
+  filter: blur(0.5px);
+  animation: curve-flow-1 20s ease-in-out infinite alternate;
+}
+
+.curved-line:nth-child(2) {
   top: 25%;
-  background: linear-gradient(90deg, transparent 0%, #0EA5E9 20%, #33C3F0 40%, #34D399 60%, #65C366 80%, transparent 100%);
-  animation: flow-wave 28s ease-in-out infinite alternate-reverse;
-  animation-delay: -5s;
+  background: none;
 }
 
-.rainbow-flow-line:nth-child(3) {
+.curved-line:nth-child(2)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #0EA5E9 10%, #33C3F0 30%, #34D399 70%, #65C366 90%, transparent 100%);
+  filter: blur(0.5px);
+  animation: curve-flow-2 22s ease-in-out infinite alternate-reverse;
+}
+
+.curved-line:nth-child(3) {
   top: 35%;
-  background: linear-gradient(90deg, transparent 0%, #8B5CF6 15%, #6366F1 35%, #0EA5E9 60%, #33C3F0 85%, transparent 100%);
-  animation: flow-wave 26s ease-in-out infinite alternate;
-  animation-delay: -10s;
+  background: none;
 }
 
-.rainbow-flow-line:nth-child(4) {
+.curved-line:nth-child(3)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #8B5CF6 10%, #6366F1 30%, #0EA5E9 70%, #33C3F0 90%, transparent 100%);
+  filter: blur(0.5px);
+  animation: curve-flow-3 25s ease-in-out infinite alternate;
+}
+
+.curved-line:nth-child(4) {
   top: 45%;
-  background: linear-gradient(90deg, transparent 0%, #65C366 20%, #34D399 40%, #33C3F0 70%, #0EA5E9 90%, transparent 100%);
-  animation: flow-wave 30s ease-in-out infinite alternate-reverse;
-  animation-delay: -8s;
+  background: none;
 }
 
-.rainbow-flow-line:nth-child(5) {
+.curved-line:nth-child(4)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #65C366 10%, #34D399 30%, #33C3F0 70%, #0EA5E9 90%, transparent 100%);
+  filter: blur(0.5px);
+  animation: curve-flow-4 18s ease-in-out infinite alternate-reverse;
+}
+
+.curved-line:nth-child(5) {
   top: 55%;
-  background: linear-gradient(90deg, transparent 0%, #34D399 10%, #65C366 30%, #FEF7CD 60%, #F97316 90%, transparent 100%);
-  animation: flow-wave 32s ease-in-out infinite alternate;
-  animation-delay: -12s;
+  background: none;
 }
 
-.rainbow-flow-line:nth-child(6) {
+.curved-line:nth-child(5)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #34D399 10%, #65C366 40%, #FEF7CD 60%, #33C3F0 90%, transparent 100%);
+  filter: blur(0.5px);
+  animation: curve-flow-5 24s ease-in-out infinite alternate;
+}
+
+.curved-line:nth-child(6) {
   top: 65%;
-  background: linear-gradient(90deg, transparent 0%, #0EA5E9 15%, #33C3F0 35%, #34D399 65%, #65C366 85%, transparent 100%);
-  animation: flow-wave 36s ease-in-out infinite alternate-reverse;
-  animation-delay: -7s;
+  background: none;
 }
 
-.rainbow-flow-line:nth-child(7) {
+.curved-line:nth-child(6)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #0EA5E9 15%, #33C3F0 40%, #34D399 60%, #65C366 85%, transparent 100%);
+  filter: blur(0.5px);
+  animation: curve-flow-6 20s ease-in-out infinite alternate-reverse;
+}
+
+.curved-line:nth-child(7) {
   top: 75%;
-  background: linear-gradient(90deg, transparent 0%, #8B5CF6 20%, #6366F1 50%, #0EA5E9 80%, transparent 100%);
-  animation: flow-wave 34s ease-in-out infinite alternate;
-  animation-delay: -15s;
+  background: none;
 }
 
-.rainbow-flow-line:nth-child(8) {
+.curved-line:nth-child(7)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #8B5CF6 20%, #6366F1 40%, #0EA5E9 70%, #33C3F0 100%);
+  filter: blur(0.5px);
+  animation: curve-flow-7 28s ease-in-out infinite alternate;
+}
+
+.curved-line:nth-child(8) {
   top: 85%;
-  background: linear-gradient(90deg, transparent 0%, #34D399 20%, #33C3F0 50%, #8B5CF6 80%, transparent 100%);
-  animation: flow-wave 38s ease-in-out infinite alternate-reverse;
-  animation-delay: -9s;
+  background: none;
 }
 
-@keyframes flow-wave {
+.curved-line:nth-child(8)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #33C3F0 20%, #0EA5E9 40%, #8B5CF6 60%, #6366F1 80%, transparent 100%);
+  filter: blur(0.5px);
+  animation: curve-flow-8 26s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes curve-flow-1 {
   0% {
-    transform: translateX(-5%) translateY(-5px) rotate(-0.5deg);
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,5 40,-10 60,0 C80,10 100,0 120,-5 C140,-10 160,10 180,0 C200,-10 220,5 240,0 L240,1 L0,1 Z');
   }
   50% {
-    transform: translateX(0%) translateY(0px) rotate(0deg);
+    transform: translateY(20px) scaleY(1.1);
+    clip-path: path('M0,0 C20,-5 40,10 60,0 C80,-10 100,5 120,10 C140,15 160,-5 180,0 C200,5 220,-5 240,0 L240,1 L0,1 Z');
   }
   100% {
-    transform: translateX(5%) translateY(5px) rotate(0.5deg);
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,10 40,0 60,5 C80,10 100,-10 120,0 C140,10 160,5 180,-5 C200,-10 220,5 240,0 L240,1 L0,1 Z');
   }
 }
 
-/* Update the old rainbow styles to be more subtle */
-.rainbow-line {
-  display: none; /* Hide the old rainbow lines */
+@keyframes curve-flow-2 {
+  0% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,10 40,0 60,5 C80,10 100,-5 120,0 C140,5 160,-5 180,0 C200,5 220,-5 240,0 L240,1 L0,1 Z');
+  }
+  50% {
+    transform: translateY(-15px) scaleY(1.05);
+    clip-path: path('M0,0 C20,-5 40,5 60,-5 C80,-10 100,5 120,0 C140,-5 160,10 180,0 C200,-10 220,5 240,0 L240,1 L0,1 Z');
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,-10 40,0 60,-5 C80,-10 100,5 120,0 C140,-5 160,10 180,5 C200,0 220,-5 240,0 L240,1 L0,1 Z');
+  }
 }
 
+@keyframes curve-flow-3 {
+  0% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,-5 40,10 60,-5 C80,0 100,5 120,-5 C140,-10 160,5 180,0 C200,-5 220,10 240,0 L240,1 L0,1 Z');
+  }
+  50% {
+    transform: translateY(25px) scaleY(1.08);
+    clip-path: path('M0,0 C20,10 40,-5 60,5 C80,10 100,-5 120,0 C140,5 160,0 180,-5 C200,-10 220,5 240,0 L240,1 L0,1 Z');
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,5 40,-10 60,0 C80,5 100,-5 120,0 C140,5 160,-5 180,0 C200,5 220,-5 240,0 L240,1 L0,1 Z');
+  }
+}
+
+@keyframes curve-flow-4 {
+  0% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,5 40,-5 60,5 C80,0 100,-5 120,5 C140,10 160,-5 180,0 C200,5 220,0 240,0 L240,1 L0,1 Z');
+  }
+  50% {
+    transform: translateY(-20px) scaleY(1.12);
+    clip-path: path('M0,0 C20,-5 40,10 60,-5 C80,-10 100,5 120,0 C140,-5 160,10 180,0 C200,-5 220,10 240,0 L240,1 L0,1 Z');
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,10 40,-5 60,0 C80,5 100,10 120,-5 C140,-10 160,5 180,0 C200,-5 220,10 240,0 L240,1 L0,1 Z');
+  }
+}
+
+@keyframes curve-flow-5 {
+  0% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,-10 40,5 60,0 C80,-5 100,10 120,5 C140,0 160,-5 180,0 C200,5 220,-5 240,0 L240,1 L0,1 Z');
+  }
+  50% {
+    transform: translateY(15px) scaleY(1.1);
+    clip-path: path('M0,0 C20,5 40,0 60,-5 C80,-10 100,5 120,10 C140,15 160,-5 180,0 C200,5 220,-10 240,0 L240,1 L0,1 Z');
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,10 40,-5 60,0 C80,5 100,-5 120,0 C140,5 160,10 180,-5 C200,-10 220,5 240,0 L240,1 L0,1 Z');
+  }
+}
+
+@keyframes curve-flow-6 {
+  0% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,5 40,-5 60,5 C80,10 100,-5 120,0 C140,5 160,-5 180,0 C200,5 220,-5 240,0 L240,1 L0,1 Z');
+  }
+  50% {
+    transform: translateY(-25px) scaleY(1.15);
+    clip-path: path('M0,0 C20,-5 40,10 60,-5 C80,-10 100,5 120,0 C140,-5 160,10 180,5 C200,0 220,-5 240,0 L240,1 L0,1 Z');
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,-10 40,0 60,-5 C80,0 100,5 120,-5 C140,-10 160,5 180,0 C200,-5 220,10 240,0 L240,1 L0,1 Z');
+  }
+}
+
+@keyframes curve-flow-7 {
+  0% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,10 40,-5 60,0 C80,5 100,-5 120,0 C140,5 160,0 180,-5 C200,-10 220,5 240,0 L240,1 L0,1 Z');
+  }
+  50% {
+    transform: translateY(20px) scaleY(1.08);
+    clip-path: path('M0,0 C20,-5 40,10 60,5 C80,0 100,-5 120,0 C140,5 160,-5 180,0 C200,5 220,0 240,0 L240,1 L0,1 Z');
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,-5 40,10 60,-5 C80,-10 100,5 120,10 C140,15 160,-5 180,0 C200,5 220,-5 240,0 L240,1 L0,1 Z');
+  }
+}
+
+@keyframes curve-flow-8 {
+  0% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,-10 40,5 60,0 C80,-5 100,10 120,0 C140,-10 160,5 180,0 C200,-5 220,10 240,0 L240,1 L0,1 Z');
+  }
+  50% {
+    transform: translateY(-15px) scaleY(1.12);
+    clip-path: path('M0,0 C20,10 40,-5 60,0 C80,5 100,0 120,-5 C140,-10 160,5 180,10 C200,15 220,-5 240,0 L240,1 L0,1 Z');
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+    clip-path: path('M0,0 C20,5 40,-10 60,0 C80,10 100,-5 120,0 C140,5 160,-5 180,0 C200,5 220,-10 240,0 L240,1 L0,1 Z');
+  }
+}
+
+/* 更新其他样式 */
 @keyframes rainbow-wave {
   0% {
     background-position: 0% 50%;

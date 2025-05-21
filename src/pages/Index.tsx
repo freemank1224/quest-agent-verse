@@ -28,17 +28,17 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 rainbow-bg">
-      {/* Rainbow flowing lines */}
-      <div className="rainbow-flow-container">
-        <div className="rainbow-flow-line"></div>
-        <div className="rainbow-flow-line"></div>
-        <div className="rainbow-flow-line"></div>
-        <div className="rainbow-flow-line"></div>
-        <div className="rainbow-flow-line"></div>
-        <div className="rainbow-flow-line"></div>
-        <div className="rainbow-flow-line"></div>
-        <div className="rainbow-flow-line"></div>
+    <div className="min-h-screen flex flex-col bg-gray-50 curved-lines-bg">
+      {/* 曲线流动背景 */}
+      <div className="curved-lines-container">
+        <div className="curved-line"></div>
+        <div className="curved-line"></div>
+        <div className="curved-line"></div>
+        <div className="curved-line"></div>
+        <div className="curved-line"></div>
+        <div className="curved-line"></div>
+        <div className="curved-line"></div>
+        <div className="curved-line"></div>
       </div>
       
       <Navbar />
@@ -54,14 +54,14 @@ const Index = () => {
             </p>
           </div>
           
-          <div className="backdrop-blur-md bg-white/80 shadow-lg rounded-xl p-8 max-w-2xl mx-auto border border-gray-200">
+          <div className="glass-effect shadow-lg rounded-xl p-8 max-w-2xl mx-auto">
             <h2 className="text-2xl font-bold mb-6 text-center font-display">今天你想了解什么？</h2>
             
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="例如：我想学习高中物理中的力学知识..."
-              className="min-h-[120px] mb-6 bg-gray-50 border border-gray-200"
+              className="min-h-[120px] mb-6 bg-gray-50/80 border border-gray-200"
             />
             
             <div className="flex justify-center">

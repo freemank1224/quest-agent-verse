@@ -21,10 +21,10 @@ const ImagePanel: React.FC<ImagePanelProps> = ({
       onOpenChange={setIsImagePanelOpen}
       className="w-full"
     >
-      <div className="sticky top-0 z-10 backdrop-blur-lg bg-white/60 shadow-sm border-b border-gray-200">
+      <div className="sticky top-0 z-10 glass-effect shadow-sm border-b border-gray-200/50">
         <CollapsibleContent>
           <div className="p-3">
-            <div className="aspect-[2/1] bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
+            <div className="aspect-[2/1] bg-gray-50/70 rounded-lg overflow-hidden border border-gray-100/50">
               <img
                 src={imageUrl}
                 alt="学习相关图片"
@@ -38,7 +38,7 @@ const ImagePanel: React.FC<ImagePanelProps> = ({
             <Button 
               variant="ghost" 
               size="sm"
-              className="absolute bottom-0 right-4 transform translate-y-1/2 rounded-full w-10 h-10 p-0 bg-white shadow-md hover:bg-gray-100 border border-gray-100 flex items-center justify-center"
+              className="absolute bottom-0 right-4 transform translate-y-1/2 rounded-full w-10 h-10 p-0 glass-effect hover:bg-white/70 flex items-center justify-center"
               style={{
                 boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)',
                 zIndex: 20
