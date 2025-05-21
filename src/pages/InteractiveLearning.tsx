@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { ChevronDown, ChevronUp, Mic, Speaker, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import Navbar from '@/components/Navbar';
 import ChatInput from '@/components/ChatInput';
 import ChatBubble from '@/components/ChatBubble';
@@ -154,13 +153,13 @@ const InteractiveLearning = () => {
           {/* Right panel - Chat interface */}
           <ResizablePanel defaultSize={75}>
             <div className="relative h-[calc(100vh-4rem)] flex flex-col">
-              {/* Top floating panel - Image display with collapse button */}
+              {/* Top floating panel - Image display with water drop shaped toggle button */}
               <Collapsible
                 open={isImagePanelOpen}
                 onOpenChange={setIsImagePanelOpen}
                 className="w-full"
               >
-                <div className="sticky top-0 z-10 backdrop-blur-md bg-white/60 shadow-md border-b border-gray-200">
+                <div className="sticky top-0 z-10 backdrop-blur-lg bg-white/60 shadow-sm border-b border-gray-200">
                   <CollapsibleContent>
                     <div className="p-3">
                       <div className="aspect-[2/1] bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
@@ -172,12 +171,16 @@ const InteractiveLearning = () => {
                       </div>
                     </div>
                   </CollapsibleContent>
-                  <div className="relative">
+                  <div className="flex justify-end">
                     <CollapsibleTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        size="icon"
-                        className="absolute bottom-0 right-4 transform translate-y-1/2 rounded-full h-8 w-8 p-0 bg-white shadow-md hover:bg-gray-100 border border-gray-200 flex items-center justify-center"
+                        size="sm"
+                        className="absolute bottom-0 right-4 transform translate-y-1/2 rounded-full w-10 h-10 p-0 bg-white shadow-md hover:bg-gray-100 border border-gray-100 flex items-center justify-center"
+                        style={{
+                          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)',
+                          zIndex: 20
+                        }}
                       >
                         {isImagePanelOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </Button>

@@ -140,38 +140,103 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Rainbow animated lines for home page background */
+/* Rainbow flowing lines for home page background - updated for thinner lines and smoother animations */
 .rainbow-bg {
   position: relative;
   overflow: hidden;
 }
 
-.rainbow-bg::before {
-  content: "";
+.rainbow-flow-container {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #ff0000, #ff9900, #33ff00, #0099ff, #6633ff, #ff0099, #ff0000);
-  background-size: 1000% 100%;
-  animation: rainbow-wave 15s linear infinite;
-  opacity: 0.5;
-  z-index: 1;
+  bottom: 0;
+  z-index: 0;
+  overflow: hidden;
 }
 
-.rainbow-bg::after {
-  content: "";
+.rainbow-flow-line {
   position: absolute;
-  bottom: 20%;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #6633ff, #0099ff, #33ff00, #ff9900, #ff0000, #ff0099, #6633ff);
-  background-size: 1000% 100%;
-  animation: rainbow-wave 20s linear infinite reverse;
-  opacity: 0.3;
+  height: 1px;
+  width: 110%;
+  left: -5%;
+  opacity: 0.2;
   z-index: 1;
+  transform-origin: center;
+}
+
+.rainbow-flow-line:nth-child(1) {
+  top: 15%;
+  background: linear-gradient(90deg, transparent 0%, #33C3F0 20%, #0EA5E9 30%, #8B5CF6 60%, #6366F1 80%, transparent 100%);
+  animation: flow-wave 24s ease-in-out infinite alternate;
+  animation-delay: 0s;
+}
+
+.rainbow-flow-line:nth-child(2) {
+  top: 25%;
+  background: linear-gradient(90deg, transparent 0%, #0EA5E9 20%, #33C3F0 40%, #34D399 60%, #65C366 80%, transparent 100%);
+  animation: flow-wave 28s ease-in-out infinite alternate-reverse;
+  animation-delay: -5s;
+}
+
+.rainbow-flow-line:nth-child(3) {
+  top: 35%;
+  background: linear-gradient(90deg, transparent 0%, #8B5CF6 15%, #6366F1 35%, #0EA5E9 60%, #33C3F0 85%, transparent 100%);
+  animation: flow-wave 26s ease-in-out infinite alternate;
+  animation-delay: -10s;
+}
+
+.rainbow-flow-line:nth-child(4) {
+  top: 45%;
+  background: linear-gradient(90deg, transparent 0%, #65C366 20%, #34D399 40%, #33C3F0 70%, #0EA5E9 90%, transparent 100%);
+  animation: flow-wave 30s ease-in-out infinite alternate-reverse;
+  animation-delay: -8s;
+}
+
+.rainbow-flow-line:nth-child(5) {
+  top: 55%;
+  background: linear-gradient(90deg, transparent 0%, #34D399 10%, #65C366 30%, #FEF7CD 60%, #F97316 90%, transparent 100%);
+  animation: flow-wave 32s ease-in-out infinite alternate;
+  animation-delay: -12s;
+}
+
+.rainbow-flow-line:nth-child(6) {
+  top: 65%;
+  background: linear-gradient(90deg, transparent 0%, #0EA5E9 15%, #33C3F0 35%, #34D399 65%, #65C366 85%, transparent 100%);
+  animation: flow-wave 36s ease-in-out infinite alternate-reverse;
+  animation-delay: -7s;
+}
+
+.rainbow-flow-line:nth-child(7) {
+  top: 75%;
+  background: linear-gradient(90deg, transparent 0%, #8B5CF6 20%, #6366F1 50%, #0EA5E9 80%, transparent 100%);
+  animation: flow-wave 34s ease-in-out infinite alternate;
+  animation-delay: -15s;
+}
+
+.rainbow-flow-line:nth-child(8) {
+  top: 85%;
+  background: linear-gradient(90deg, transparent 0%, #34D399 20%, #33C3F0 50%, #8B5CF6 80%, transparent 100%);
+  animation: flow-wave 38s ease-in-out infinite alternate-reverse;
+  animation-delay: -9s;
+}
+
+@keyframes flow-wave {
+  0% {
+    transform: translateX(-5%) translateY(-5px) rotate(-0.5deg);
+  }
+  50% {
+    transform: translateX(0%) translateY(0px) rotate(0deg);
+  }
+  100% {
+    transform: translateX(5%) translateY(5px) rotate(0.5deg);
+  }
+}
+
+/* Update the old rainbow styles to be more subtle */
+.rainbow-line {
+  display: none; /* Hide the old rainbow lines */
 }
 
 @keyframes rainbow-wave {
@@ -183,42 +248,11 @@
   }
 }
 
-.rainbow-line {
-  position: absolute;
-  height: 1px;
-  left: -5%;
-  right: -5%;
-  background: linear-gradient(90deg, transparent, #6366F1, #8B5CF6, #EC4899, transparent);
-  opacity: 0.2;
-  z-index: 1;
-  animation: float-line 20s ease-in-out infinite;
-}
-
-.rainbow-line:nth-child(1) {
-  top: 15%;
-  animation-delay: 0s;
-}
-
-.rainbow-line:nth-child(2) {
-  top: 35%;
-  animation-delay: -5s;
-}
-
-.rainbow-line:nth-child(3) {
-  top: 55%;
-  animation-delay: -10s;
-}
-
-.rainbow-line:nth-child(4) {
-  top: 75%;
-  animation-delay: -15s;
-}
-
 @keyframes float-line {
   0%, 100% {
-    transform: translateY(-10px) rotate(0.5deg);
+    transform: translateY(-5px) rotate(0.2deg);
   }
   50% {
-    transform: translateY(10px) rotate(-0.5deg);
+    transform: translateY(5px) rotate(-0.2deg);
   }
 }

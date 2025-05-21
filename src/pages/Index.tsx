@@ -29,14 +29,21 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 rainbow-bg">
-      <div className="rainbow-line"></div>
-      <div className="rainbow-line"></div>
-      <div className="rainbow-line"></div>
-      <div className="rainbow-line"></div>
+      {/* Rainbow flowing lines */}
+      <div className="rainbow-flow-container">
+        <div className="rainbow-flow-line"></div>
+        <div className="rainbow-flow-line"></div>
+        <div className="rainbow-flow-line"></div>
+        <div className="rainbow-flow-line"></div>
+        <div className="rainbow-flow-line"></div>
+        <div className="rainbow-flow-line"></div>
+        <div className="rainbow-flow-line"></div>
+        <div className="rainbow-flow-line"></div>
+      </div>
       
       <Navbar />
       
-      <main className="flex-grow flex items-center justify-center z-10">
+      <main className="flex-grow flex items-center justify-center z-10 relative">
         <div className="max-w-3xl w-full px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl font-display">
