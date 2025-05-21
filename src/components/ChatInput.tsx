@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Mic, Send } from "lucide-react";
+import { Mic, Send, Volume2, VolumeX } from "lucide-react";
 import { useChat } from '@/contexts/ChatContext';
 import { sendQueryToAgent } from '@/services/api';
 import { toast } from "@/components/ui/sonner";
@@ -51,32 +51,49 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSpeakerToggle, isSpeakerOn }) =
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col w-full gap-2">
-      <div className="flex items-center gap-2">
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className="flex flex-col w-full gap-3">
         <Textarea
           ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="输入您的问题..."
-          className="min-h-[60px] resize-none"
+          className="min-h-[60px] resize-none bg-white/80"
           disabled={isGenerating}
         />
-      </div>
-      <div className="flex justify-between">
-        <Button 
-          type="button" 
-          variant="outline" 
-          size="icon" 
-          onClick={handleMicClick}
-          disabled={isGenerating}
-        >
-          <Mic className="h-4 w-4" />
-        </Button>
-        <Button type="submit" disabled={!input.trim() || isGenerating}>
-          {isGenerating ? '正在生成...' : '发送'}
-          {!isGenerating && <Send className="ml-2 h-4 w-4" />}
-        </Button>
+        
+        <div className="flex justify-between items-center">
+          <div className="flex space-x-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={handleMicClick}
+              disabled={isGenerating}
+              className="flex items-center gap-1"
+            >
+              <Mic className="h-4 w-4" /> 
+              <span>使用语音输入</span>
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant={isSpeakerOn ? "default" : "outline"} 
+              size="sm"
+              onClick={onSpeakerToggle}
+              className="flex items-center gap-1"
+            >
+              {isSpeakerOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              <span>{isSpeakerOn ? '关闭朗读' : '开启朗读'}</span>
+            </Button>
+          </div>
+          
+          <Button type="submit" disabled={!input.trim() || isGenerating}>
+            {isGenerating ? '正在生成...' : '发送'}
+            {!isGenerating && <Send className="ml-2 h-4 w-4" />}
+          </Button>
+        </div>
       </div>
     </form>
   );

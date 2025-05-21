@@ -3,19 +3,33 @@ import React from 'react';
 import { MessageType } from '@/contexts/ChatContext';
 import { cn } from '@/lib/utils';
 import MarkdownRenderer from './MarkdownRenderer';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ChatBubbleProps {
   message: MessageType;
+  avatar?: string;
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, avatar }) => {
   const { content, sender } = message;
+  
+  // Get initials for avatar fallback
+  const getInitials = () => {
+    return sender === 'user' ? 'U' : 'AI';
+  };
   
   return (
     <div className={cn(
-      "flex mb-4",
+      "flex mb-4 items-start",
       sender === 'user' ? "justify-end" : "justify-start"
     )}>
+      {sender !== 'user' && (
+        <Avatar className="mr-2 flex-shrink-0">
+          <AvatarImage src={avatar} alt="Agent" />
+          <AvatarFallback>{getInitials()}</AvatarFallback>
+        </Avatar>
+      )}
+      
       <div
         className={cn(
           "chat-bubble",
@@ -36,6 +50,13 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
           })}
         </div>
       </div>
+      
+      {sender === 'user' && (
+        <Avatar className="ml-2 flex-shrink-0">
+          <AvatarImage src={avatar} alt="User" />
+          <AvatarFallback>{getInitials()}</AvatarFallback>
+        </Avatar>
+      )}
     </div>
   );
 };

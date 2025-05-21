@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Speaker, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown, ChevronUp, Mic, Speaker, Volume2, VolumeX } from "lucide-react";
 import Navbar from '@/components/Navbar';
 import ChatInput from '@/components/ChatInput';
 import ChatBubble from '@/components/ChatBubble';
@@ -13,6 +13,7 @@ import { getUserProgress } from '@/services/api';
 import { toast } from '@/components/ui/sonner';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const InteractiveLearning = () => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const InteractiveLearning = () => {
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState('https://source.unsplash.com/random/800x400/?education');
+  const [isImagePanelOpen, setIsImagePanelOpen] = useState(true);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,6 +66,14 @@ const InteractiveLearning = () => {
     setIsSpeakerOn(!isSpeakerOn);
     toast.info(isSpeakerOn ? '已关闭文本朗读' : '已开启文本朗读');
   };
+
+  const toggleImagePanel = () => {
+    setIsImagePanelOpen(!isImagePanelOpen);
+  };
+
+  // Dummy avatars (in a real app, these would come from the backend)
+  const userAvatar = user?.avatar_url || 'https://source.unsplash.com/random/100x100/?portrait';
+  const agentAvatar = 'https://source.unsplash.com/random/100x100/?robot';
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -144,16 +154,31 @@ const InteractiveLearning = () => {
           {/* Right panel - Chat interface */}
           <ResizablePanel defaultSize={75}>
             <div className="relative h-[calc(100vh-4rem)] flex flex-col">
-              {/* Top floating panel - Image display */}
-              <div className="sticky top-0 z-10 bg-white shadow-md p-3 border-b border-gray-200">
-                <div className="aspect-[2/1] bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
-                  <img
-                    src={currentImageUrl}
-                    alt="学习相关图片"
-                    className="w-full h-full object-cover"
-                  />
+              {/* Top floating panel - Image display with collapse button */}
+              <Collapsible
+                open={isImagePanelOpen}
+                onOpenChange={setIsImagePanelOpen}
+                className="w-full"
+              >
+                <div className="sticky top-0 z-10 bg-white shadow-md p-3 border-b border-gray-200">
+                  <CollapsibleContent>
+                    <div className="aspect-[2/1] bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
+                      <img
+                        src={currentImageUrl}
+                        alt="学习相关图片"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </CollapsibleContent>
+                  <div className="flex justify-end mt-2">
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="flex items-center justify-center h-6 w-6 p-0">
+                        {isImagePanelOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
                 </div>
-              </div>
+              </Collapsible>
               
               {/* Main chat area */}
               <div 
@@ -161,30 +186,22 @@ const InteractiveLearning = () => {
                 className="flex-grow overflow-y-auto px-4 py-6 space-y-4 bg-gray-50"
               >
                 {messages.map((message) => (
-                  <ChatBubble key={message.id} message={message} />
+                  <ChatBubble 
+                    key={message.id} 
+                    message={message} 
+                    avatar={message.sender === 'user' ? userAvatar : agentAvatar} 
+                  />
                 ))}
               </div>
               
-              {/* Bottom floating panel - Chat input */}
-              <div className="sticky bottom-0 z-10 bg-white shadow-md p-4 border-t border-gray-200">
-                <div className="flex justify-end mb-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={toggleSpeaker}
-                    className="mb-2"
-                  >
-                    {isSpeakerOn ? (
-                      <Volume2 className="h-4 w-4" />
-                    ) : (
-                      <VolumeX className="h-4 w-4" />
-                    )}
-                  </Button>
+              {/* Bottom floating panel - Chat input with frosted glass effect */}
+              <div className="sticky bottom-4 z-10 mx-4">
+                <div className="backdrop-blur-md bg-white/70 rounded-lg shadow-md p-4 border border-gray-100">
+                  <ChatInput 
+                    onSpeakerToggle={toggleSpeaker}
+                    isSpeakerOn={isSpeakerOn}
+                  />
                 </div>
-                <ChatInput 
-                  onSpeakerToggle={toggleSpeaker}
-                  isSpeakerOn={isSpeakerOn}
-                />
               </div>
             </div>
           </ResizablePanel>
