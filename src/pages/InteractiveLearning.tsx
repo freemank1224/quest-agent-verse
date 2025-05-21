@@ -18,7 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 const InteractiveLearning = () => {
   const navigate = useNavigate();
   const { messages, initialPrompt, addMessage } = useChat();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [userProgress, setUserProgress] = useState<any>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
@@ -71,8 +71,8 @@ const InteractiveLearning = () => {
     setIsImagePanelOpen(!isImagePanelOpen);
   };
 
-  // User avatar - using avatar_url if available or fallback
-  const userAvatar = user?.avatar_url || 'https://source.unsplash.com/random/100x100/?portrait';
+  // User avatar - using profile.avatar_url if available or fallback
+  const userAvatar = profile?.avatar_url || 'https://source.unsplash.com/random/100x100/?portrait';
   const agentAvatar = 'https://source.unsplash.com/random/100x100/?robot';
 
   return (
