@@ -71,7 +71,7 @@ const InteractiveLearning = () => {
     setIsImagePanelOpen(!isImagePanelOpen);
   };
 
-  // Dummy avatars (in a real app, these would come from the backend)
+  // User avatar - using avatar_url if available or fallback
   const userAvatar = user?.avatar_url || 'https://source.unsplash.com/random/100x100/?portrait';
   const agentAvatar = 'https://source.unsplash.com/random/100x100/?robot';
 
@@ -160,19 +160,25 @@ const InteractiveLearning = () => {
                 onOpenChange={setIsImagePanelOpen}
                 className="w-full"
               >
-                <div className="sticky top-0 z-10 bg-white shadow-md p-3 border-b border-gray-200">
+                <div className="sticky top-0 z-10 backdrop-blur-md bg-white/60 shadow-md border-b border-gray-200">
                   <CollapsibleContent>
-                    <div className="aspect-[2/1] bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
-                      <img
-                        src={currentImageUrl}
-                        alt="学习相关图片"
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="p-3">
+                      <div className="aspect-[2/1] bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
+                        <img
+                          src={currentImageUrl}
+                          alt="学习相关图片"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     </div>
                   </CollapsibleContent>
-                  <div className="flex justify-end mt-2">
+                  <div className="relative">
                     <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="flex items-center justify-center h-6 w-6 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="absolute bottom-0 right-4 transform translate-y-1/2 rounded-full h-8 w-8 p-0 bg-white shadow-md hover:bg-gray-100 border border-gray-200 flex items-center justify-center"
+                      >
                         {isImagePanelOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </Button>
                     </CollapsibleTrigger>

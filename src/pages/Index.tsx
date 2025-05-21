@@ -28,10 +28,15 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 rainbow-bg">
+      <div className="rainbow-line"></div>
+      <div className="rainbow-line"></div>
+      <div className="rainbow-line"></div>
+      <div className="rainbow-line"></div>
+      
       <Navbar />
       
-      <main className="flex-grow flex items-center justify-center">
+      <main className="flex-grow flex items-center justify-center z-10">
         <div className="max-w-3xl w-full px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl font-display">
@@ -42,7 +47,7 @@ const Index = () => {
             </p>
           </div>
           
-          <div className="bg-white shadow-lg rounded-xl p-8 max-w-2xl mx-auto border border-gray-200">
+          <div className="backdrop-blur-md bg-white/80 shadow-lg rounded-xl p-8 max-w-2xl mx-auto border border-gray-200">
             <h2 className="text-2xl font-bold mb-6 text-center font-display">今天你想了解什么？</h2>
             
             <Textarea
