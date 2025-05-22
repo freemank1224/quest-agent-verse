@@ -1,8 +1,89 @@
-# Welcome to your Lovable project
+# Quest Agent Verse
 
-## Project info
+Quest Agent Verse是一个基于AI Agents的智能教育平台，通过大模型驱动的教学规划、内容生成和互动学习，提供个性化学习体验。
 
-**URL**: https://lovable.dev/projects/00ad2dda-c534-4093-b15f-023a02fba78e
+## 项目结构
+
+项目采用前后端分离架构：
+
+```
+quest-agent-verse/
+├── src/                 # 前端代码
+│   ├── components/      # React组件
+│   ├── contexts/        # 上下文管理
+│   ├── hooks/           # 自定义Hooks
+│   ├── lib/             # 工具函数库
+│   ├── pages/           # 页面组件
+│   └── services/        # API服务
+├── backend/             # 后端代码
+│   ├── src/
+│   │   ├── agents/      # 实现各类AI Agents
+│   │   ├── api/         # FastAPI路由和端点
+│   │   ├── services/    # 业务逻辑服务
+│   │   └── utils/       # 工具函数
+│   └── requirements.txt # 后端依赖
+└── start_dev.sh         # 开发环境启动脚本
+```
+
+## Agents架构
+
+系统由三个Agent团队组成：
+
+1. **Teaching Team**：负责规划和执行教学任务
+   - CoursePlanner：课程规划设计
+   - ContentDesigner：内容设计生成
+   - ContentVerifier：内容验证检查
+   - Teacher：课程讲解与问答
+
+2. **Learning Team**：辅助学习者进行学习
+   - LearningCompanion：学习伙伴，提供个性化引导
+
+3. **Monitor Team**：监测教学内容和学习效果
+   - SessionAnalyst：学习会话分析
+   - LearningProfiler：学习者画像分析
+
+## 安装与启动
+
+### 安装前端依赖
+
+```bash
+npm install
+```
+
+### 安装后端依赖
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+### 启动开发环境
+
+使用提供的启动脚本可以同时启动前后端服务：
+
+```bash
+./start_dev.sh
+```
+
+或者分别启动：
+
+#### 前端开发服务器
+
+```bash
+npm run dev
+```
+
+#### 后端开发服务器
+
+```bash
+cd backend
+python -m uvicorn src.main:app --reload
+```
+
+服务启动后：
+- 前端访问：http://localhost:3000
+- 后端API：http://localhost:8000
+- API文档：http://localhost:8000/docs
 
 ## How can I edit this code?
 

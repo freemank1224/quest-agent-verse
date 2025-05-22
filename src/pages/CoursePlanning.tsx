@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -54,16 +53,77 @@ const CoursePlanning = () => {
 
       try {
         setIsLoadingOutline(true);
-        const data = await getCourseOutline(initialPrompt);
-        setOutline(data);
+        console.log('Fetching course outline for:', initialPrompt);
+        
+        // 传递所有可能的参数
+        const data = await getCourseOutline(
+          initialPrompt,
+          '深入理解主题内容',  // 默认学习目标
+          '4-6小时',          // 默认学习时长
+          '初学者'            // 默认背景知识水平
+        );
+        
+        console.log('Raw API response:', data);
+        
+        // 验证和清理数据
+        const validatedData = {
+          title: data?.title || `${initialPrompt} 课程大纲`,
+          chapters: Array.isArray(data?.chapters) ? data.chapters : []
+        };
+        
+        // 确保每个章节都有必要的属性
+        validatedData.chapters = validatedData.chapters.map((chapter, index) => ({
+          id: chapter?.id || `chapter-${index + 1}`,
+          title: chapter?.title || `第${index + 1}章`,
+          description: chapter?.description || '',
+          sections: Array.isArray(chapter?.sections) ? chapter.sections.map((section, sectionIndex) => ({
+            id: section?.id || `${chapter?.id || (index + 1)}.${sectionIndex + 1}`,
+            title: section?.title || `第${sectionIndex + 1}节`
+          })) : [
+            {
+              id: `${chapter?.id || (index + 1)}.1`,
+              title: `${chapter?.title || `第${index + 1}章`} - 详细内容`
+            }
+          ]
+        }));
+        
+        console.log('Validated data:', validatedData);
+        setOutline(validatedData);
         
         // Select the first section by default
-        if (data.chapters.length > 0 && data.chapters[0].sections.length > 0) {
-          setSelectedSection(data.chapters[0].sections[0].id);
+        if (validatedData.chapters.length > 0 && validatedData.chapters[0].sections.length > 0) {
+          setSelectedSection(validatedData.chapters[0].sections[0].id);
         }
       } catch (error) {
         console.error('Error fetching course outline:', error);
         toast.error('获取课程大纲失败，请重试');
+        
+        // 设置一个默认的课程大纲以防止页面崩溃
+        const fallbackOutline = {
+          title: `${initialPrompt} 课程大纲`,
+          chapters: [
+            {
+              id: "1",
+              title: "第一章：基础介绍",
+              description: `介绍${initialPrompt}的基本概念`,
+              sections: [
+                { id: "1.1", title: "概念介绍" },
+                { id: "1.2", title: "基础知识" }
+              ]
+            },
+            {
+              id: "2",
+              title: "第二章：深入学习", 
+              description: `深入学习${initialPrompt}的核心内容`,
+              sections: [
+                { id: "2.1", title: "核心原理" },
+                { id: "2.2", title: "实际应用" }
+              ]
+            }
+          ]
+        };
+        setOutline(fallbackOutline);
+        setSelectedSection("1.1");
       } finally {
         setIsLoadingOutline(false);
       }
@@ -110,27 +170,35 @@ const CoursePlanning = () => {
             <div>
               <h3 className="text-lg font-semibold mb-2">{outline.title}</h3>
               <div className="space-y-4 mt-4">
-                {outline.chapters.map((chapter) => (
-                  <div key={chapter.id} className="space-y-2">
-                    <h4 className="font-medium text-gray-900">{chapter.title}</h4>
-                    <ul className="ml-4 space-y-1">
-                      {chapter.sections.map((section) => (
-                        <li key={section.id}>
-                          <button
-                            onClick={() => setSelectedSection(section.id)}
-                            className={`text-left w-full p-1.5 text-sm rounded hover:bg-gray-100 ${
-                              selectedSection === section.id
-                                ? 'bg-primary/10 text-primary font-medium'
-                                : 'text-gray-700'
-                            }`}
-                          >
-                            {section.title}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                {outline.chapters && outline.chapters.length > 0 ? (
+                  outline.chapters.map((chapter) => (
+                    <div key={chapter.id} className="space-y-2">
+                      <h4 className="font-medium text-gray-900">{chapter.title}</h4>
+                      <ul className="ml-4 space-y-1">
+                        {chapter.sections && chapter.sections.length > 0 ? (
+                          chapter.sections.map((section) => (
+                            <li key={section.id}>
+                              <button
+                                onClick={() => setSelectedSection(section.id)}
+                                className={`text-left w-full p-1.5 text-sm rounded hover:bg-gray-100 ${
+                                  selectedSection === section.id
+                                    ? 'bg-primary/10 text-primary font-medium'
+                                    : 'text-gray-700'
+                                }`}
+                              >
+                                {section.title}
+                              </button>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-sm text-gray-500 ml-4">暂无章节内容</li>
+                        )}
+                      </ul>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">暂无课程章节</p>
+                )}
               </div>
               <div className="mt-8">
                 <Button onClick={handleStartLearning} className="w-full">

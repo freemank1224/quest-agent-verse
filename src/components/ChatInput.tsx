@@ -1,10 +1,8 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mic, Send, Volume2, VolumeX } from "lucide-react";
 import { useChat } from '@/contexts/ChatContext';
-import { sendQueryToAgent } from '@/services/api';
 import { toast } from "@/components/ui/sonner";
 
 interface ChatInputProps {
@@ -14,29 +12,16 @@ interface ChatInputProps {
 
 const ChatInput: React.FC<ChatInputProps> = ({ onSpeakerToggle, isSpeakerOn }) => {
   const [input, setInput] = useState('');
-  const { addMessage, setIsGenerating, isGenerating } = useChat();
+  const { sendMessage, isGenerating } = useChat();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isGenerating) return;
 
-    // Add user message
-    addMessage(input, 'user');
+    // 使用WebSocket发送消息
+    sendMessage(input);
     setInput('');
-    setIsGenerating(true);
-
-    try {
-      // Send message to API
-      const response = await sendQueryToAgent(input);
-      // Add agent response
-      addMessage(response, 'agent');
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('发送消息失败，请重试');
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

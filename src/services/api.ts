@@ -1,129 +1,116 @@
+// 实际API调用，连接到后端
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api';
 
-// Simulating API calls for now, as we don't have a real backend yet
+// 辅助函数，检测API响应状态
+async function checkResponse(response: Response) {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(
+      errorData?.message || `API错误：${response.status} ${response.statusText}`
+    );
+  }
+  return response.json();
+}
 
-// Function to simulate sending a query to the agent
+// 建立WebSocket连接
+export const connectWebSocket = (
+  clientId: string,
+  onMessage: (data: any) => void,
+  onClose: () => void
+) => {
+  const socket = new WebSocket(`${WS_URL}/ws/chat/${clientId}`);
+  
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    onMessage(data);
+  };
+  
+  socket.onclose = () => {
+    onClose();
+  };
+  
+  return {
+    send: (content: string, sender: string) => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ content, sender }));
+      }
+    },
+    close: () => socket.close()
+  };
+};
+
+// 发送查询到Agent
 export const sendQueryToAgent = async (query: string): Promise<string> => {
   console.log('Sending query to agent:', query);
   
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Return a mock response
-  return `这是对"${query}"的模拟回复。在实际应用中，这将由后端Agent服务提供。`;
+  try {
+    const response = await fetch(`${API_URL}/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
+    
+    const data = await checkResponse(response);
+    return data.response;
+  } catch (error) {
+    console.error('Error sending query to agent:', error);
+    throw error;
+  }
 };
 
-// Function to simulate getting course outline
-export const getCourseOutline = async (topic: string): Promise<any> => {
+// 获取课程大纲
+export const getCourseOutline = async (
+  topic: string, 
+  learningGoal?: string, 
+  duration?: string, 
+  backgroundLevel?: string
+): Promise<any> => {
   console.log('Getting course outline for:', topic);
   
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 2500));
-  
-  // Return a mock response
-  return {
-    title: `${topic}学习计划`,
-    chapters: [
-      {
-        id: '1',
-        title: '第一章：基础概念',
-        sections: [
-          { id: '1.1', title: '1.1 核心原理介绍' },
-          { id: '1.2', title: '1.2 历史与发展' },
-        ]
+  try {
+    const response = await fetch(`${API_URL}/course/plan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      {
-        id: '2',
-        title: '第二章：进阶知识',
-        sections: [
-          { id: '2.1', title: '2.1 理论应用' },
-          { id: '2.2', title: '2.2 实践方法' },
-        ]
-      },
-      {
-        id: '3',
-        title: '第三章：综合实践',
-        sections: [
-          { id: '3.1', title: '3.1 案例分析' },
-          { id: '3.2', title: '3.2 问题解决' },
-        ]
-      }
-    ]
-  };
+      body: JSON.stringify({ 
+        topic, 
+        learning_goal: learningGoal, 
+        duration, 
+        background_level: backgroundLevel 
+      }),
+    });
+    
+    return await checkResponse(response);
+  } catch (error) {
+    console.error('Error getting course outline:', error);
+    throw error;
+  }
 };
 
-// Function to simulate getting course content
+// 获取课程内容
 export const getCourseContent = async (sectionId: string): Promise<any> => {
   console.log('Getting course content for section:', sectionId);
   
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Return a mock response
-  return {
-    title: `章节 ${sectionId}`,
-    mainContent: `
-# ${sectionId} 主要内容
-
-这是该章节的主要内容。在实际应用中，这将是由Agent生成的详细教学内容。
-
-## 子标题1
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam euismod, nisl eget ultricies ultrices, nunc nisl ultricies nunc, eget ultricies nisl eget ultricies.
-
-## 子标题2
-
-以下是一个数学公式的例子：
-
-$$E = mc^2$$
-
-### 代码示例
-
-\`\`\`python
-def hello_world():
-    print("Hello, world!")
-\`\`\`
-
-### 流程图示例
-
-\`\`\`mermaid
-graph TD;
-    A-->B;
-    A-->C;
-    B-->D;
-    C-->D;
-\`\`\`
-    `,
-    keyPoints: [
-      '核心知识点1：这是一个重要的概念',
-      '核心知识点2：这是另一个关键理解',
-      '核心知识点3：实践应用方法'
-    ],
-    images: [
-      {
-        url: 'https://source.unsplash.com/random/800x600/?education',
-        caption: '相关图片资源'
-      }
-    ],
-    curriculumAlignment: [
-      '课标要求1：符合XX年级XX学科核心素养要求',
-      '课标要求2：培养学生的逻辑思维能力',
-      '课标要求3：鼓励学生应用知识解决实际问题'
-    ]
-  };
+  try {
+    const response = await fetch(`${API_URL}/course/content/${encodeURIComponent(sectionId)}`);
+    return await checkResponse(response);
+  } catch (error) {
+    console.error('Error getting course content:', error);
+    throw error;
+  }
 };
 
-// Function to simulate getting user progress
+// 获取用户学习进度
 export const getUserProgress = async (): Promise<any> => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Return a mock response
-  return {
-    completedChapters: ['1', '2'],
-    achievements: [
-      { id: '1', title: '学习初探', description: '完成第一章学习' },
-      { id: '2', title: '学习进阶', description: '完成两个章节学习' }
-    ],
-    progressPercentage: 60
-  };
+  try {
+    const response = await fetch(`${API_URL}/user/progress`);
+    return await checkResponse(response);
+  } catch (error) {
+    console.error('Error getting user progress:', error);
+    throw error;
+  }
 };
