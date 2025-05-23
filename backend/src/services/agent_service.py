@@ -6,7 +6,7 @@ from datetime import datetime
 
 from src.agents.teaching_team.course_planner import course_planner
 from src.agents.teaching_team.content_designer import content_designer
-from src.agents.teaching_team.teacher import teacher
+from src.agents.teaching_team.teacher_agent import teacher
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)

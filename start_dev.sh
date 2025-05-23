@@ -14,7 +14,7 @@ check_port() {
     fi
 }
 
-check_port 3000
+check_port 8080
 check_port 8000
 
 # 在新的终端窗口中启动前端
@@ -26,6 +26,6 @@ echo -e "${GREEN}启动后端服务...${NC}"
 osascript -e 'tell app "Terminal" to do script "cd \"'$PWD'/backend\" && python -m uvicorn src.main:app --reload"'
 
 echo -e "${GREEN}开发环境已启动!${NC}"
-echo -e "前端：http://localhost:3000"
+echo -e "前端：http://localhost:8080"
 echo -e "后端：http://localhost:8000"
 echo -e "API文档：http://localhost:8000/docs"
