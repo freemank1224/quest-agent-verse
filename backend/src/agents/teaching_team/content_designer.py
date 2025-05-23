@@ -2,6 +2,8 @@ from typing import Dict, Any, List, Optional
 import logging
 import json
 import re
+import sys
+import os
 
 from agno.agent import Agent, Message
 from agno.models.ollama import Ollama
@@ -10,6 +12,10 @@ from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.reasoning import ReasoningTools
 from agno.memory.v2 import Memory
 
+# 导入记忆管理器
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+from memory.memory_manager import MemoryManager
+from memory.course_memory import CourseMemory
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -18,9 +24,10 @@ logger = logging.getLogger(__name__)
 class ContentDesignerAgent:
     """
     ContentDesigner Agent负责根据课程大纲设计章节的详细内容
+    集成记忆管理功能，能够存储和检索课程内容
     """
     
-    def __init__(self):
+    def __init__(self, memory_db_path: str = "memory/teaching_memory.db"):
         # 使用 xAI 作为主要模型
         self.agent = Agent(
             name="ContentDesigner",
@@ -37,23 +44,45 @@ class ContentDesignerAgent:
             3. 确定核心知识点和学习要点
             4. 建议合适的教学媒体（图像、视频等）
             5. 确保内容与课标要求保持一致
+            6. 利用已有的课程记忆来保持内容的一致性和连贯性
             
             教学内容应当符合教育理论，使用适当的教学方法和策略。
             """
         )
-        logger.info("ContentDesignerAgent initialized")
+        
+        # 初始化记忆管理器
+        self.memory_manager = MemoryManager(memory_db_path)
+        self.course_memory = CourseMemory(self.memory_manager)
+        
+        logger.info(f"ContentDesignerAgent initialized with memory manager: {memory_db_path}")
     
-    async def create_content(self, section_info: Dict[str, Any]) -> Dict[str, Any]:
+    async def create_content(self, section_info: Dict[str, Any], 
+                           course_id: Optional[int] = None,
+                           course_topic: Optional[str] = None) -> Dict[str, Any]:
         """
-        为特定章节创建内容
+        为特定章节创建内容，并存储到记忆管理器中
         
         Args:
             section_info: 包含章节信息的字典，应当包含id, title, description等字段
+            course_id: 课程ID（可选）
+            course_topic: 课程主题（可选，用于搜索相关内容）
             
         Returns:
             Dict[str, Any]: 包含章节内容的字典
         """
         logger.info(f"Creating content for section: {section_info.get('title', 'Unknown')}")
+        
+        # 获取相关的课程内容作为上下文
+        context_info = []
+        if course_topic:
+            related_courses = self.memory_manager.search_courses_by_topic(course_topic)
+            if related_courses:
+                context_info.append(f"相关课程: {related_courses[0]['title']}")
+        
+        if course_id:
+            course_outline = self.memory_manager.get_course_outline(course_id)
+            if course_outline:
+                context_info.append(f"课程目标: {', '.join(course_outline.get('learning_objectives', []))}")
         
         # 构建发送给Agent的消息
         # 首先准备JSON模板字符串（避免f-string中的大括号冲突）
@@ -107,7 +136,12 @@ class ContentDesignerAgent:
 {self._format_list(section_info.get('learning_objectives', []))}
 
 关键要点:
-{self._format_list(section_info.get('key_points', []))}
+{self._format_list(section_info.get('key_points', []))}"""
+
+        if context_info:
+            content += f"\n\n课程上下文:\n{chr(10).join(context_info)}"
+
+        content += f"""
 
 请提供以下内容：
 1. 详细的教学内容，包括概念解释、示例和应用
@@ -145,6 +179,17 @@ class ContentDesignerAgent:
             # 首先尝试直接解析JSON
             section_content = json.loads(cleaned_content)
             logger.info("Successfully parsed ContentDesigner response as JSON")
+            
+            # 存储内容到记忆管理器
+            if course_id:
+                try:
+                    content_id = self.course_memory.store_section_content(
+                        course_id, section_info, section_content
+                    )
+                    logger.info(f"Section content stored to memory with ID: {content_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to store section content to memory: {e}")
+            
             return section_content
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse ContentDesigner response as direct JSON: {e}")
@@ -155,6 +200,17 @@ class ContentDesignerAgent:
                 try:
                     section_content = json.loads(json_match.group(1))
                     logger.info("Successfully extracted JSON from markdown code block")
+                    
+                    # 存储内容到记忆管理器
+                    if course_id:
+                        try:
+                            content_id = self.course_memory.store_section_content(
+                                course_id, section_info, section_content
+                            )
+                            logger.info(f"Section content stored to memory with ID: {content_id}")
+                        except Exception as e:
+                            logger.warning(f"Failed to store section content to memory: {e}")
+                    
                     return section_content
                 except json.JSONDecodeError as e2:
                     logger.warning(f"Failed to parse extracted JSON: {e2}")
@@ -166,13 +222,24 @@ class ContentDesignerAgent:
                 try:
                     section_content = json.loads(match)
                     logger.info("Successfully found and parsed JSON object in response")
+                    
+                    # 存储内容到记忆管理器
+                    if course_id:
+                        try:
+                            content_id = self.course_memory.store_section_content(
+                                course_id, section_info, section_content
+                            )
+                            logger.info(f"Section content stored to memory with ID: {content_id}")
+                        except Exception as e:
+                            logger.warning(f"Failed to store section content to memory: {e}")
+                    
                     return section_content
                 except json.JSONDecodeError:
                     continue
             
             # 如果所有解析都失败，创建一个默认格式的响应
             logger.warning("All JSON parsing attempts failed, creating default content structure")
-            return {
+            default_content = {
                 "content": [
                     {
                         "type": "introduction",
@@ -211,6 +278,43 @@ class ContentDesignerAgent:
                     }
                 ]
             }
+            
+            # 存储默认内容到记忆管理器
+            if course_id:
+                try:
+                    content_id = self.course_memory.store_section_content(
+                        course_id, section_info, default_content
+                    )
+                    logger.info(f"Default section content stored to memory with ID: {content_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to store default section content to memory: {e}")
+            
+            return default_content
+    
+    def get_section_content(self, section_id: str) -> Optional[Dict[str, Any]]:
+        """
+        从记忆管理器中获取章节内容
+        
+        Args:
+            section_id: 章节ID
+            
+        Returns:
+            章节内容或None
+        """
+        return self.course_memory.get_section_content_by_id(section_id)
+    
+    def search_related_content(self, keywords: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        搜索相关的课程内容
+        
+        Args:
+            keywords: 搜索关键词
+            limit: 返回结果限制
+            
+        Returns:
+            相关内容列表
+        """
+        return self.course_memory.search_related_content(keywords, limit)
     
     def _format_list(self, items: List[str]) -> str:
         """将列表格式化为带编号的文本"""
