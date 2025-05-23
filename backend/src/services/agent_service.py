@@ -3,10 +3,13 @@ import logging
 from fastapi import WebSocket
 import json
 from datetime import datetime
+import os
+import hashlib
 
 from src.agents.teaching_team.course_planner import course_planner
 from src.agents.teaching_team.content_designer import content_designer
 from src.agents.teaching_team.teacher_agent import teacher
+from src.memory.course_memory import CourseMemory
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -19,8 +22,82 @@ class AgentService:
     
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
-        logger.info("AgentService initialized")
+        # 初始化课程记忆管理器
+        self.course_memory = CourseMemory()
+        # 确保本地课程存储目录存在
+        self.courses_dir = os.path.join(os.path.dirname(__file__), "../../courses")
+        os.makedirs(self.courses_dir, exist_ok=True)
+        logger.info("AgentService initialized with course memory")
     
+    def _generate_topic_id(self, topic: str) -> str:
+        """为主题生成唯一ID"""
+        return hashlib.md5(topic.lower().encode()).hexdigest()[:12]
+    
+    def _save_course_to_file(self, topic: str, course_data: Dict[str, Any]) -> str:
+        """将课程数据保存到本地文件"""
+        topic_id = self._generate_topic_id(topic)
+        filename = f"course_{topic_id}.json"
+        filepath = os.path.join(self.courses_dir, filename)
+        
+        # 添加保存时间戳
+        course_data["saved_at"] = datetime.now().isoformat()
+        course_data["topic"] = topic
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(course_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Course saved to file: {filepath}")
+        return filepath
+    
+    def _load_course_from_file(self, topic: str) -> Optional[Dict[str, Any]]:
+        """从本地文件加载课程数据"""
+        topic_id = self._generate_topic_id(topic)
+        filename = f"course_{topic_id}.json"
+        filepath = os.path.join(self.courses_dir, filename)
+        
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    course_data = json.load(f)
+                logger.info(f"Course loaded from file: {filepath}")
+                return course_data
+            except Exception as e:
+                logger.error(f"Error loading course from file {filepath}: {e}")
+        return None
+    
+    def _save_section_to_file(self, topic: str, section_id: str, content_data: Dict[str, Any]) -> str:
+        """将章节内容保存到本地文件"""
+        topic_id = self._generate_topic_id(topic)
+        section_filename = f"section_{topic_id}_{section_id.replace('.', '_')}.json"
+        section_filepath = os.path.join(self.courses_dir, section_filename)
+        
+        # 添加保存时间戳
+        content_data["saved_at"] = datetime.now().isoformat()
+        content_data["topic"] = topic
+        content_data["section_id"] = section_id
+        
+        with open(section_filepath, 'w', encoding='utf-8') as f:
+            json.dump(content_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Section content saved to file: {section_filepath}")
+        return section_filepath
+    
+    def _load_section_from_file(self, topic: str, section_id: str) -> Optional[Dict[str, Any]]:
+        """从本地文件加载章节内容"""
+        topic_id = self._generate_topic_id(topic)
+        section_filename = f"section_{topic_id}_{section_id.replace('.', '_')}.json"
+        section_filepath = os.path.join(self.courses_dir, section_filename)
+        
+        if os.path.exists(section_filepath):
+            try:
+                with open(section_filepath, 'r', encoding='utf-8') as f:
+                    content_data = json.load(f)
+                logger.info(f"Section content loaded from file: {section_filepath}")
+                return content_data
+            except Exception as e:
+                logger.error(f"Error loading section from file {section_filepath}: {e}")
+        return None
+
     async def connect(self, websocket: WebSocket, client_id: str) -> None:
         """注册WebSocket连接"""
         await websocket.accept()
@@ -63,15 +140,39 @@ class AgentService:
         logger.info(f"Processed message from client {client_id}: {message_content[:50]}...")
         return response
     
+    async def check_course_exists(self, topic: str) -> Dict[str, Any]:
+        """检查课程是否已存在"""
+        # 先检查记忆管理器
+        course_data = self.course_memory.get_course_by_topic(topic)
+        if course_data:
+            logger.info(f"Course found in memory for topic: {topic}")
+            return {"exists": True, "source": "memory", "course_data": course_data}
+        
+        # 再检查本地文件
+        course_data = self._load_course_from_file(topic)
+        if course_data:
+            logger.info(f"Course found in local file for topic: {topic}")
+            return {"exists": True, "source": "file", "course_data": course_data}
+        
+        logger.info(f"No existing course found for topic: {topic}")
+        return {"exists": False, "source": None, "course_data": None}
+
     async def create_course_plan(self, topic: str, learning_goal: Optional[str] = None, 
                                  duration: Optional[str] = None, background_level: Optional[str] = None) -> Dict[str, Any]:
         """
         创建课程规划
-        调用CoursePlanner Agent实现
+        调用CoursePlanner Agent实现，支持缓存检查
         """
         logger.info(f"AgentService.create_course_plan called with topic: {topic}")
         
-        # 调用CoursePlanner，使用正确的参数名
+        # 先检查是否已有课程内容
+        existing_check = await self.check_course_exists(topic)
+        if existing_check["exists"]:
+            logger.info(f"返回已存在的课程内容，来源：{existing_check['source']}")
+            return existing_check["course_data"]
+        
+        # 如果不存在，生成新的课程内容
+        logger.info(f"生成新的课程内容：{topic}")
         result = await course_planner.create_course_plan(
             topic=topic, 
             learning_goal=learning_goal,
@@ -81,6 +182,26 @@ class AgentService:
         
         logger.info(f"CoursePlanner returned: {result}")
         
+        # 格式化结果
+        formatted_result = self._format_course_result(result, topic)
+        
+        # 存储到记忆管理器
+        try:
+            course_id = self.course_memory.store_course_outline(topic, formatted_result)
+            logger.info(f"Course stored in memory with ID: {course_id}")
+        except Exception as e:
+            logger.error(f"Error storing course in memory: {e}")
+        
+        # 保存到本地文件
+        try:
+            self._save_course_to_file(topic, formatted_result)
+        except Exception as e:
+            logger.error(f"Error saving course to file: {e}")
+        
+        return formatted_result
+    
+    def _format_course_result(self, result: Any, topic: str) -> Dict[str, Any]:
+        """格式化课程结果为前端期望的格式"""
         # 检查结果结构并转换格式
         if isinstance(result, dict):
             # 如果有course_title和sections，转换为前端期望的格式
@@ -166,20 +287,37 @@ class AgentService:
                     }
                 ]
             }
-    
-    async def get_course_content(self, section_id: str) -> Dict[str, Any]:
+
+    async def get_course_content(self, section_id: str, topic: Optional[str] = None) -> Dict[str, Any]:
         """
         获取课程内容
-        调用ContentDesigner Agent实现
+        调用ContentDesigner Agent实现，支持缓存检查
         """
         logger.info(f"AgentService.get_course_content called with section_id: {section_id}")
+        
+        # 如果提供了主题，先检查本地文件缓存
+        if topic:
+            cached_content = self._load_section_from_file(topic, section_id)
+            if cached_content:
+                logger.info(f"返回缓存的章节内容：{section_id}")
+                return cached_content
+        
+        # 尝试从记忆管理器获取
+        memory_content = self.course_memory.get_section_content_by_id(section_id)
+        if memory_content:
+            logger.info(f"从记忆管理器获取章节内容：{section_id}")
+            # 转换为前端期望的格式
+            return self._format_section_content(memory_content, section_id)
+        
+        # 如果缓存中没有，生成新内容
+        logger.info(f"生成新的章节内容：{section_id}")
         
         # 解析section_id来构建章节信息
         section_parts = section_id.split('-') if '-' in section_id else section_id.split('.')
         chapter_num = section_parts[0] if section_parts else "1"
         section_num = section_parts[1] if len(section_parts) > 1 else "1"
         
-        # 构建section_info字典，这是ContentDesignerAgent.create_content()期望的格式
+        # 构建section_info字典
         section_info = {
             "id": section_id,
             "title": f"第{chapter_num}章 第{section_num}节",
@@ -188,88 +326,102 @@ class AgentService:
             "key_points": ["重点内容1", "重点内容2"]
         }
         
-        logger.info(f"Calling ContentDesigner with section_info: {section_info}")
-        
         try:
             result = await content_designer.create_content(section_info)
             logger.info(f"ContentDesigner returned: {result}")
             
-            # 转换格式以匹配前端期望的CourseContentResponse
-            if isinstance(result, dict):
-                # 如果返回的是有效的内容格式
-                if "content" in result:
-                    # 提取内容并转换为前端期望的格式
-                    main_content = ""
-                    key_points = []
-                    images = []
-                    curriculum_alignment = []
-                    
-                    for item in result["content"]:
-                        item_type = item.get("type", "")
-                        if item_type == "introduction":
-                            main_content += f"## 介绍\n{item.get('text', '')}\n\n"
-                        elif item_type == "concept":
-                            main_content += f"## {item.get('title', '概念')}\n{item.get('explanation', '')}\n\n"
-                            if item.get("examples"):
-                                main_content += f"**示例：**\n"
-                                for example in item["examples"]:
-                                    main_content += f"- {example}\n"
-                                main_content += "\n"
-                        elif item_type == "activity":
-                            main_content += f"## {item.get('title', '活动')}\n{item.get('description', '')}\n\n"
-                            if item.get("steps"):
-                                main_content += f"**步骤：**\n"
-                                for i, step in enumerate(item["steps"], 1):
-                                    main_content += f"{i}. {step}\n"
-                                main_content += "\n"
-                        elif item_type == "media":
-                            images.append({
-                                "url": "https://via.placeholder.com/600x300?text=" + item.get("title", "示例图片"),
-                                "caption": item.get("description", "示例图片")
-                            })
-                        elif item_type == "assessment":
-                            for question in item.get("questions", []):
-                                key_points.append(f"问题：{question.get('question', '')}")
-                    
-                    return {
-                        "title": section_info["title"],
-                        "mainContent": main_content or f"# {section_info['title']}\n\n这里是关于{section_info['title']}的详细内容。",
-                        "keyPoints": key_points or ["核心概念理解", "实际应用掌握", "相关知识点整合"],
-                        "images": images,
-                        "curriculumAlignment": curriculum_alignment or ["符合课程标准要求", "对应学习目标", "适合目标年龄段"]
-                    }
-                else:
-                    # 如果返回格式不符合预期，创建默认内容
-                    logger.warning("ContentDesigner returned unexpected format, creating default content")
-                    return {
-                        "title": section_info["title"],
-                        "mainContent": f"# {section_info['title']}\n\n这里是关于{section_info['title']}的详细内容。\n\n## 主要内容\n\n本节将介绍相关的核心概念和实际应用。",
-                        "keyPoints": ["核心概念理解", "实际应用掌握", "相关知识点整合"],
-                        "images": [],
-                        "curriculumAlignment": ["符合课程标准要求", "对应学习目标", "适合目标年龄段"]
-                    }
-            else:
-                logger.error(f"ContentDesigner returned non-dict result: {type(result)}")
-                # 创建默认内容
-                return {
-                    "title": section_info["title"],
-                    "mainContent": f"# {section_info['title']}\n\n这里是关于{section_info['title']}的详细内容。",
-                    "keyPoints": ["核心概念理解", "实际应用掌握"],
-                    "images": [],
-                    "curriculumAlignment": ["符合课程标准要求"]
-                }
+            # 格式化内容
+            formatted_content = self._format_content_result(result, section_info)
+            
+            # 存储到记忆管理器（如果有课程ID的话）
+            try:
+                # 这里需要课程ID，暂时跳过记忆存储
+                # content_id = self.course_memory.store_section_content(course_id, section_info, formatted_content)
+                pass
+            except Exception as e:
+                logger.error(f"Error storing section content in memory: {e}")
+            
+            # 保存到本地文件（如果有主题的话）
+            if topic:
+                try:
+                    self._save_section_to_file(topic, section_id, formatted_content)
+                except Exception as e:
+                    logger.error(f"Error saving section content to file: {e}")
+            
+            return formatted_content
                 
         except Exception as e:
             logger.error(f"Error calling ContentDesigner: {e}")
             # 返回默认内容以防止API失败
+            return self._get_default_section_content(section_info)
+    
+    def _format_section_content(self, memory_content: Dict[str, Any], section_id: str) -> Dict[str, Any]:
+        """将记忆管理器中的内容格式化为前端期望的格式"""
+        # 这里需要根据记忆管理器的实际存储格式来转换
+        return {
+            "title": memory_content.get("title", f"章节 {section_id}"),
+            "mainContent": memory_content.get("content", ""),
+            "keyPoints": memory_content.get("key_points", []),
+            "images": memory_content.get("images", []),
+            "curriculumAlignment": memory_content.get("curriculum_alignment", [])
+        }
+    
+    def _format_content_result(self, result: Any, section_info: Dict[str, Any]) -> Dict[str, Any]:
+        """格式化章节内容结果"""
+        if isinstance(result, dict) and "content" in result:
+            # 提取内容并转换为前端期望的格式
+            main_content = ""
+            key_points = []
+            images = []
+            curriculum_alignment = []
+            
+            for item in result["content"]:
+                item_type = item.get("type", "")
+                if item_type == "introduction":
+                    main_content += f"## 介绍\n{item.get('text', '')}\n\n"
+                elif item_type == "concept":
+                    main_content += f"## {item.get('title', '概念')}\n{item.get('explanation', '')}\n\n"
+                    if item.get("examples"):
+                        main_content += f"**示例：**\n"
+                        for example in item["examples"]:
+                            main_content += f"- {example}\n"
+                        main_content += "\n"
+                elif item_type == "activity":
+                    main_content += f"## {item.get('title', '活动')}\n{item.get('description', '')}\n\n"
+                    if item.get("steps"):
+                        main_content += f"**步骤：**\n"
+                        for i, step in enumerate(item["steps"], 1):
+                            main_content += f"{i}. {step}\n"
+                        main_content += "\n"
+                elif item_type == "media":
+                    images.append({
+                        "url": "https://via.placeholder.com/600x300?text=" + item.get("title", "示例图片"),
+                        "caption": item.get("description", "示例图片")
+                    })
+                elif item_type == "assessment":
+                    for question in item.get("questions", []):
+                        key_points.append(f"问题：{question.get('question', '')}")
+            
             return {
                 "title": section_info["title"],
-                "mainContent": f"# {section_info['title']}\n\n抱歉，暂时无法获取详细内容。请稍后重试。",
-                "keyPoints": ["内容加载中"],
-                "images": [],
-                "curriculumAlignment": ["课程标准对齐中"]
+                "mainContent": main_content or f"# {section_info['title']}\n\n这里是关于{section_info['title']}的详细内容。",
+                "keyPoints": key_points or ["核心概念理解", "实际应用掌握", "相关知识点整合"],
+                "images": images,
+                "curriculumAlignment": curriculum_alignment or ["符合课程标准要求", "对应学习目标", "适合目标年龄段"]
             }
+        else:
+            return self._get_default_section_content(section_info)
     
+    def _get_default_section_content(self, section_info: Dict[str, Any]) -> Dict[str, Any]:
+        """获取默认的章节内容"""
+        return {
+            "title": section_info["title"],
+            "mainContent": f"# {section_info['title']}\n\n这里是关于{section_info['title']}的详细内容。\n\n## 主要内容\n\n本节将介绍相关的核心概念和实际应用。",
+            "keyPoints": ["核心概念理解", "实际应用掌握", "相关知识点整合"],
+            "images": [],
+            "curriculumAlignment": ["符合课程标准要求", "对应学习目标", "适合目标年龄段"]
+        }
+
     async def get_user_progress(self) -> Dict[str, Any]:
         """
         获取用户学习进度

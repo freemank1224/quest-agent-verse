@@ -411,20 +411,34 @@ class MemoryManager:
         Returns:
             相关性评分 (0-1)
         """
-        # 简单的关键词匹配方法
-        # 实际应用中可以使用更复杂的语义相似度计算
-        topic_words = set(current_topic.lower().split())
-        message_words = set(user_message.lower().split())
-        
-        if not topic_words:
+        # 检查current_topic是否为空或None
+        if not current_topic or current_topic is None:
+            logger.warning("current_topic is None or empty, returning default relevance score")
             return 1.0
         
-        # 计算交集比例
-        intersection = topic_words.intersection(message_words)
-        relevance = len(intersection) / len(topic_words)
+        # 检查user_message是否为空或None
+        if not user_message or user_message is None:
+            logger.warning("user_message is None or empty, returning default relevance score")
+            return 1.0
         
-        # 确保最小相关性为0.1，避免过度严格
-        return max(0.1, relevance)
+        # 简单的关键词匹配方法
+        # 实际应用中可以使用更复杂的语义相似度计算
+        try:
+            topic_words = set(current_topic.lower().split())
+            message_words = set(user_message.lower().split())
+            
+            if not topic_words:
+                return 1.0
+            
+            # 计算交集比例
+            intersection = topic_words.intersection(message_words)
+            relevance = len(intersection) / len(topic_words)
+            
+            # 确保最小相关性为0.1，避免过度严格
+            return max(0.1, relevance)
+        except Exception as e:
+            logger.error(f"Error calculating topic relevance: {e}")
+            return 1.0  # 出错时返回默认相关性
     
     def check_topic_deviation(self, client_id: str, session_id: str,
                             threshold: float = 0.3) -> bool:

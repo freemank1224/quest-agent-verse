@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
 import { connectWebSocket } from '@/services/api';
-import { v4 as uuidv4 } from 'uuid';
 
 // Define types for messages
 export type MessageType = {
@@ -20,6 +19,7 @@ type ChatContextType = {
   isGenerating: boolean;
   setIsGenerating: (isGenerating: boolean) => void;
   sendMessage: (content: string) => void;
+  clientId: string;
 };
 
 // Create context with a default value
@@ -34,25 +34,39 @@ export const useChat = () => {
   return context;
 };
 
+// 生成或获取持久化的客户端ID
+const getClientId = () => {
+  let clientId = localStorage.getItem('client_id');
+  if (!clientId) {
+    clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('client_id', clientId);
+  }
+  return clientId;
+};
+
 // Provider component
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [initialPrompt, setInitialPrompt] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [clientId] = useState<string>(uuidv4());
+  const [clientId] = useState<string>(getClientId()); // 使用持久化的客户端ID
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
+    console.log('Initializing WebSocket connection with client ID:', clientId);
+    
     // 初始化WebSocket连接
     socketRef.current = connectWebSocket(
       clientId,
       (data) => {
         // 处理收到的消息
+        console.log('Received message from WebSocket:', data);
         addMessage(data.content, data.sender);
         setIsGenerating(false);
       },
       () => {
         console.log('WebSocket connection closed');
+        setIsGenerating(false);
       }
     );
 
@@ -78,6 +92,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   // Send a message through WebSocket
   const sendMessage = (content: string) => {
     if (socketRef.current) {
+      console.log('Sending message:', content, 'from client:', clientId);
+      
       // 先显示用户消息
       addMessage(content, 'user');
       
@@ -86,6 +102,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       
       // 发送消息到服务器
       socketRef.current.send(content, 'user');
+    } else {
+      console.error('WebSocket connection not available');
+      setIsGenerating(false);
     }
   };
 
@@ -104,6 +123,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     isGenerating,
     setIsGenerating,
     sendMessage,
+    clientId, // 暴露clientId给组件使用
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

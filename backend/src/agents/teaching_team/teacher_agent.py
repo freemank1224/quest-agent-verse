@@ -90,12 +90,9 @@ class TeacherAgent:
         Returns:
             包含响应信息的字典
         """
-        # 确保session_id存在
-        if session_id is None:
-            session_id = str(uuid.uuid4())
-        
-        # 确保客户端会话存在
+        # 确保会话存在
         if client_id not in self.client_sessions:
+            session_id = session_id or str(uuid.uuid4())
             self.client_sessions[client_id] = {
                 "session_id": session_id,
                 "history": [],
@@ -104,8 +101,12 @@ class TeacherAgent:
             }
             logger.info(f"New session created for client {client_id}")
         
-        # 获取当前学习主题
-        current_topic = self.client_sessions[client_id].get("current_topic", "一般学习")
+        # 获取当前学习主题，确保不为None
+        current_topic = self.client_sessions[client_id].get("current_topic")
+        if not current_topic:
+            current_topic = "一般学习"  # 设置默认主题
+            self.client_sessions[client_id]["current_topic"] = current_topic
+            logger.info(f"Set default topic for client {client_id}: {current_topic}")
         
         # 计算主题相关性
         topic_relevance = self.memory_manager.calculate_topic_relevance(

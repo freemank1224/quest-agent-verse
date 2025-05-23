@@ -1,0 +1,5 @@
+# 忽略所有课程文件
+*.json
+
+# 但保留README文件
+!README.md 

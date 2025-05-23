@@ -61,6 +61,19 @@ export const sendQueryToAgent = async (query: string): Promise<string> => {
   }
 };
 
+// 检查课程是否已存在
+export const checkCourseExists = async (topic: string): Promise<any> => {
+  console.log('Checking if course exists for topic:', topic);
+  
+  try {
+    const response = await fetch(`${API_URL}/course/exists/${encodeURIComponent(topic)}`);
+    return await checkResponse(response);
+  } catch (error) {
+    console.error('Error checking course existence:', error);
+    throw error;
+  }
+};
+
 // 获取课程大纲
 export const getCourseOutline = async (
   topic: string, 
@@ -92,14 +105,30 @@ export const getCourseOutline = async (
 };
 
 // 获取课程内容
-export const getCourseContent = async (sectionId: string): Promise<any> => {
+export const getCourseContent = async (sectionId: string, topic?: string): Promise<any> => {
   console.log('Getting course content for section:', sectionId);
   
   try {
-    const response = await fetch(`${API_URL}/course/content/${encodeURIComponent(sectionId)}`);
+    const url = new URL(`${API_URL}/course/content/${encodeURIComponent(sectionId)}`);
+    if (topic) {
+      url.searchParams.append('topic', topic);
+    }
+    
+    const response = await fetch(url.toString());
     return await checkResponse(response);
   } catch (error) {
     console.error('Error getting course content:', error);
+    throw error;
+  }
+};
+
+// 获取已存储的课程列表
+export const getCourseList = async (): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/course/list`);
+    return await checkResponse(response);
+  } catch (error) {
+    console.error('Error getting course list:', error);
     throw error;
   }
 };
@@ -111,6 +140,28 @@ export const getUserProgress = async (): Promise<any> => {
     return await checkResponse(response);
   } catch (error) {
     console.error('Error getting user progress:', error);
+    throw error;
+  }
+};
+
+// 设置教学上下文
+export const setTeachingContext = async (clientId: string, topic: string, sessionId?: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/teaching/set-context`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        client_id: clientId,
+        topic: topic,
+        session_id: sessionId 
+      }),
+    });
+    
+    return await checkResponse(response);
+  } catch (error) {
+    console.error('Error setting teaching context:', error);
     throw error;
   }
 };
