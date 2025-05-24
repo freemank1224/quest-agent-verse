@@ -8,7 +8,7 @@ import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Import the new components
-import LearningProgress from '@/components/learning/LearningProgress';
+import EnhancedLearningProgress from '@/components/learning/EnhancedLearningProgress';
 import ImagePanel from '@/components/learning/ImagePanel';
 import ChatSection from '@/components/learning/ChatSection';
 import ChatInputPanel from '@/components/learning/ChatInputPanel';
@@ -122,10 +122,11 @@ const InteractiveLearning = () => {
                 </div>
               )}
               
-              <LearningProgress 
+              <EnhancedLearningProgress 
                 userProgress={userProgress}
                 isLoadingProgress={isLoadingProgress}
                 user={user}
+                initialPrompt={initialPrompt}
               />
               
               {/* 临时调试链接 */}
