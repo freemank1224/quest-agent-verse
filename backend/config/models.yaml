@@ -1,0 +1,162 @@
+# AI教学系统模型配置文件
+# 简化版 - 只提供细粒度的Agent配置
+# API密钥等敏感信息通过.env文件管理
+
+# 全局默认配置
+global_defaults:
+  default_provider: "ollama"
+  default_model_code: "qwen3_32b"
+  timeout: 30
+
+# 模型提供商配置
+model_providers:
+  # OpenAI配置
+  openai:
+    gpt4_turbo:
+      provider: "openai"
+      model_id: "gpt-4-turbo"
+      description: "GPT-4 Turbo - 高性能通用模型"
+      config:
+        temperature: 0.7
+        max_tokens: 4096
+        timeout: 30
+    
+    gpt4o:
+      provider: "openai"
+      model_id: "gpt-4o"
+      description: "GPT-4o - 多模态模型"
+      config:
+        temperature: 0.7
+        max_tokens: 4096
+        timeout: 30
+    
+    gpt35_turbo:
+      provider: "openai"
+      model_id: "gpt-3.5-turbo"
+      description: "GPT-3.5 Turbo - 经济实用模型"
+      config:
+        temperature: 0.7
+        max_tokens: 2048
+        timeout: 20
+
+  # xAI配置
+  xai:
+    grok_beta:
+      provider: "xai"
+      model_id: "grok3-beta"
+      description: "Grok Beta - xAI的主力模型"
+      config:
+        temperature: 0.7
+        max_tokens: 4096
+        timeout: 30
+    
+    grok_mini:
+      provider: "xai"
+      model_id: "grok3-mini-beta"
+      description: "Grok Vision - 支持视觉理解"
+      config:
+        temperature: 0.7
+        max_tokens: 4096
+        timeout: 30
+
+  # Google Gemini配置
+  gemini:
+    gemini_flash:
+      provider: "gemini"
+      model_id: "gemini-2.5-flash-preview-05-20"
+      description: "Gemini Pro - Google的高性能模型"
+      config:
+        temperature: 0.7
+        max_tokens: 4096
+        timeout: 30
+    
+    gemini_pro_vision:
+      provider: "gemini"
+      model_id: "gemini-pro-vision"
+      description: "Gemini Pro Vision - 多模态模型"
+      config:
+        temperature: 0.7
+        max_tokens: 4096
+        timeout: 30
+    
+    gemini_15_pro:
+      provider: "gemini"
+      model_id: "gemini-1.5-pro"
+      description: "Gemini 1.5 Pro - 最新版本"
+      config:
+        temperature: 0.7
+        max_tokens: 8192
+        timeout: 40
+
+  # Ollama本地模型配置 - 设置较长超时时间以适应本地模型推理速度
+  ollama:
+    qwen3_32b:
+      provider: "ollama"
+      model_id: "qwen3:32b"
+      description: "Qwen3 32B - 高性能中文模型"
+      config:
+        timeout: 600  # 10分钟超时，适应大模型推理时间
+        keep_alive: "10m"  # 保持模型在内存中更长时间
+        host: "http://localhost:11434"
+    
+    qwen3_14b:
+      provider: "ollama"
+      model_id: "qwen3:14b"
+      description: "Qwen3 14B - 平衡性能中文模型"
+      config:
+        timeout: 300  # 5分钟超时
+        keep_alive: "10m"
+        host: "http://localhost:11434"
+    
+    llama3_8b:
+      provider: "ollama"
+      model_id: "llama3:8b"
+      description: "Llama3 8B - 通用英文模型"
+      config:
+        timeout: 180  # 3分钟超时
+        keep_alive: "5m"
+        host: "http://localhost:11434"
+    
+    codellama_13b:
+      provider: "ollama"
+      model_id: "codellama:13b"
+      description: "CodeLlama 13B - 专业编程模型"
+      config:
+        timeout: 300  # 5分钟超时
+        keep_alive: "10m"
+        host: "http://localhost:11434"
+
+# Agent团队配置 - 细粒度配置
+agent_teams:
+  # 教学团队
+  teaching_team:
+    description: "负责课程内容设计和教学互动"
+    
+    teacher_agent:
+      model_code: "qwen3_32b"
+    
+    course_planner:
+      model_code: "qwen3_32b"
+    
+    content_designer:
+      model_code: "gemini_flash"
+    
+    content_verifier:
+      model_code: "grok_beta"
+
+  # 学习团队
+  learning_team:
+    description: "负责学习过程监控和个性化推荐"
+    
+    learning_analyst:
+      model_code: "qwen3_32b"
+
+  # 监控团队
+  monitor_team:
+    description: "负责会话分析和学习画像"
+    
+    session_analyst:
+      model_code: "qwen3_14b"
+    
+    learning_profiler:
+      model_code: "gpt4o" 

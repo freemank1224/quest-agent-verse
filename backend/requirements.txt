@@ -4,3 +4,4 @@ python-dotenv==1.1.0
 agno==1.5.3
 websockets==14.0
 pydantic==2.6.4
+PyYAML==6.0.2

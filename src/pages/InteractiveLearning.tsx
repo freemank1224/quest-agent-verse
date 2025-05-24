@@ -105,6 +105,21 @@ const InteractiveLearning = () => {
                 isLoadingProgress={isLoadingProgress}
                 user={user}
               />
+              
+              {/* 临时调试链接 */}
+              <div className="mt-6 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <h4 className="text-sm font-medium text-yellow-800 mb-2">🔧 调试工具</h4>
+                <a 
+                  href="/websocket-debug" 
+                  target="_blank"
+                  className="text-sm text-yellow-700 hover:text-yellow-900 underline"
+                >
+                  打开WebSocket调试器
+                </a>
+                <p className="text-xs text-yellow-600 mt-1">
+                  如果聊天无法正常工作，请使用此工具诊断问题
+                </p>
+              </div>
             </div>
           </ResizablePanel>
           
