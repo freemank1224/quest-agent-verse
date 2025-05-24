@@ -41,9 +41,9 @@ model_providers:
 
   # xAI配置
   xai:
-    grok_beta:
+    grok:
       provider: "xai"
-      model_id: "grok3-beta"
+      model_id: "grok-3-beta"
       description: "Grok Beta - xAI的主力模型"
       config:
         temperature: 0.7
@@ -52,7 +52,7 @@ model_providers:
     
     grok_mini:
       provider: "xai"
-      model_id: "grok3-mini-beta"
+      model_id: "grok-3-mini-beta"
       description: "Grok Vision - 支持视觉理解"
       config:
         temperature: 0.7
@@ -142,7 +142,7 @@ agent_teams:
       model_code: "gemini_flash"
     
     content_verifier:
-      model_code: "grok_beta"
+      model_code: "qwen3_32b"  # 替换 grok 模型，因为xAI API被封禁
 
   # 学习团队
   learning_team:

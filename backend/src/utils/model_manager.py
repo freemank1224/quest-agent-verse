@@ -191,6 +191,12 @@ class ModelManager:
             model_code = agent_config.get("model_code")
             
             if model_code:
+                # 检查是否使用了xAI的Grok模型，如已知被封禁则自动切换到备用模型
+                if model_code.startswith("grok"):
+                    logger.warning(f"检测到{team_name}.{agent_name}配置使用xAI (Grok) 模型 {model_code}，但该API已被封禁")
+                    logger.info("自动切换到备用模型 qwen3_32b")
+                    model_code = "qwen3_32b"  # 自动切换到备用模型
+                
                 return self._get_model_config_by_code(model_code)
         
         # 使用默认配置
@@ -233,14 +239,31 @@ class ModelManager:
                 )
             
             elif provider == "xai":
-                return xAI(
-                    id=model_id,
-                    api_key=config.get("api_key"),
-                    base_url=config.get("base_url", "https://api.x.ai/v1"),
-                    temperature=config.get("temperature", 0.7),
-                    max_tokens=config.get("max_tokens", 4096),
-                    timeout=config.get("timeout", 30)
-                )
+                # 检查xAI API是否已知被封禁
+                api_key_status = self.env_config.validate_api_keys().get("xai", False)
+                if not api_key_status:
+                    logger.warning("xAI (Grok) API密钥不可用，自动使用Ollama备用模型")
+                    logger.info("如果您确定API密钥有效，请检查网络连接或API状态")
+                    # 直接使用备用模型
+                    return self._get_fallback_model()
+                
+                try:
+                    return xAI(
+                        id=model_id,
+                        api_key=config.get("api_key"),
+                        base_url=config.get("base_url", "https://api.x.ai/v1"),
+                        temperature=config.get("temperature", 0.7),
+                        max_tokens=config.get("max_tokens", 4096),
+                        timeout=config.get("timeout", 30)
+                    )
+                except Exception as xai_error:
+                    # 特别检查API被封禁的错误
+                    error_str = str(xai_error).lower()
+                    if "blocked" in error_str or "permission denied" in error_str:
+                        logger.error(f"xAI (Grok) API密钥已被封禁: {xai_error}")
+                        logger.info("自动使用Ollama备用模型")
+                        return self._get_fallback_model()
+                    raise  # 其他错误仍然抛出
             
             elif provider == "gemini":
                 return Gemini(

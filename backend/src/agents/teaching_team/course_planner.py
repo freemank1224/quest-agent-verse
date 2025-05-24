@@ -30,7 +30,8 @@ class CoursePlannerAgent:
     def __init__(self, memory_db_path: str = "memory/teaching_memory.db"):
         # 使用统一模型管理器获取配置化的模型
         try:
-            model = get_agent_model("teaching_team", "course_planner")
+            # 使用 ollama 的 qwen3_32b 模型替代 grok (xAI API已被封禁)
+            model = get_agent_model("teaching_team", "course_planner", "grok")
             logger.info(f"成功加载课程规划Agent模型: {type(model).__name__}")
         except Exception as e:
             logger.error(f"加载模型失败，使用默认配置: {e}")
