@@ -32,8 +32,8 @@ class ContentDesignerAgent:
         # 使用 xAI 作为主要模型
         self.agent = Agent(
             name="ContentDesigner",
-            # model=Ollama(id="qwen3:32b", host="http://localhost:11434"),  # 使用Ollama的Qwen模型
-            model=xAI(id="grok-3-beta", api_key=os.environ.get('XAI_API_KEY')),  # 使用xAI的Grok模型
+            model=Ollama(id="qwen3:32b", host="http://localhost:11434"),  # 使用Ollama的Qwen模型
+            # model=xAI(id="grok-3-beta", api_key=os.environ.get('XAI_API_KEY')),  # 使用xAI的Grok模型
             memory=Memory(),
             tools=[
                 ReasoningTools()
