@@ -20,7 +20,16 @@ const InteractiveLearning = () => {
   const [userProgress, setUserProgress] = useState<any>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
-  const [currentImageUrl, setCurrentImageUrl] = useState('https://source.unsplash.com/random/800x400/?education');
+  
+  // 可用的图片列表
+  const availableImages = [
+    '/images/chatgpt_image.png',
+    '/placeholder.svg', // 使用public目录中的占位符作为示例
+    // 用户可以在public/images文件夹中添加更多图片
+  ];
+  
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentImageUrl, setCurrentImageUrl] = useState(availableImages[0]);
   const [isImagePanelOpen, setIsImagePanelOpen] = useState(true);
   const [isContextSet, setIsContextSet] = useState(false);
 
@@ -70,6 +79,19 @@ const InteractiveLearning = () => {
   const toggleSpeaker = () => {
     setIsSpeakerOn(!isSpeakerOn);
     toast.info(isSpeakerOn ? '已关闭文本朗读' : '已开启文本朗读');
+  };
+
+  // 切换图片函数
+  const nextImage = () => {
+    const nextIndex = (currentImageIndex + 1) % availableImages.length;
+    setCurrentImageIndex(nextIndex);
+    setCurrentImageUrl(availableImages[nextIndex]);
+  };
+
+  const previousImage = () => {
+    const prevIndex = currentImageIndex === 0 ? availableImages.length - 1 : currentImageIndex - 1;
+    setCurrentImageIndex(prevIndex);
+    setCurrentImageUrl(availableImages[prevIndex]);
   };
 
   // User avatar - using profile.avatar_url if available or fallback
@@ -133,6 +155,11 @@ const InteractiveLearning = () => {
                 isImagePanelOpen={isImagePanelOpen}
                 setIsImagePanelOpen={setIsImagePanelOpen}
                 imageUrl={currentImageUrl}
+                onPreviousImage={previousImage}
+                onNextImage={nextImage}
+                hasMultipleImages={availableImages.length > 1}
+                currentImageIndex={currentImageIndex}
+                totalImages={availableImages.length}
               />
               
               {/* Main chat area */}
