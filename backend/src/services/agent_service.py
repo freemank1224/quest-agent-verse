@@ -269,7 +269,15 @@ class AgentService:
                 logger.info(f"Formatted result: {formatted_result}")
                 return formatted_result
             
-            # 如果已经是正确的格式
+            # 检查增强格式（包含 course_title 和 chapters）
+            elif "course_title" in result and "chapters" in result:
+                logger.info("Result is in enhanced format, returning as is")
+                # 添加 title 字段以保持向后兼容性
+                if "title" not in result:
+                    result["title"] = result["course_title"]
+                return result
+            
+            # 如果已经是旧的正确格式
             elif "title" in result and "chapters" in result:
                 logger.info("Result is already in correct format")
                 return result
@@ -342,12 +350,38 @@ class AgentService:
         # 如果缓存中没有，生成新内容
         logger.info(f"生成新的章节内容：{section_id}")
         
+        # 获取课程大纲以获取增强的章节信息
+        course_outline = None
+        chapter_info = None
+        if topic:
+            # 先从文件加载课程大纲
+            course_outline = self._load_course_from_file(topic)
+            logger.info(f"加载的课程大纲: {bool(course_outline)}")
+            if course_outline and 'chapters' in course_outline:
+                logger.info(f"课程包含 {len(course_outline['chapters'])} 个章节")
+                # 查找包含当前section的chapter
+                for chapter in course_outline['chapters']:
+                    logger.info(f"检查章节: {chapter.get('id')} - {chapter.get('title')}")
+                    if 'sections' in chapter:
+                        logger.info(f"章节包含 {len(chapter['sections'])} 个小节")
+                        for section in chapter['sections']:
+                            logger.info(f"检查小节: {section.get('id')} vs 请求的 {section_id}")
+                            if section.get('id') == section_id:
+                                chapter_info = chapter
+                                logger.info(f"找到匹配的章节信息: {chapter.get('title')}")
+                                break
+                    if chapter_info:
+                        break
+                
+                if not chapter_info:
+                    logger.warning(f"未找到 section_id {section_id} 对应的章节信息")
+        
         # 解析section_id来构建章节信息
         section_parts = section_id.split('-') if '-' in section_id else section_id.split('.')
         chapter_num = section_parts[0] if section_parts else "1"
         section_num = section_parts[1] if len(section_parts) > 1 else "1"
         
-        # 构建section_info字典
+        # 构建增强的section_info字典
         section_info = {
             "id": section_id,
             "title": f"第{chapter_num}章 第{section_num}节",
@@ -356,11 +390,30 @@ class AgentService:
             "key_points": ["重点内容1", "重点内容2"]
         }
         
+        # 如果找到了对应的章节，使用其信息
+        if chapter_info:
+            # 查找具体的section信息
+            for section in chapter_info.get('sections', []):
+                if section.get('id') == section_id:
+                    section_info.update({
+                        "title": section.get('title', section_info['title']),
+                        "content_type": section.get('content_type', '概念讲解'),
+                        "activity_suggestion": section.get('activity_suggestion', '无特殊建议')
+                    })
+                    break
+            
+            # 从章节中继承学习目标和关键概念
+            if chapter_info.get('learning_objectives'):
+                section_info['learning_objectives'] = chapter_info['learning_objectives']
+            if chapter_info.get('key_concepts'):
+                section_info['key_points'] = chapter_info['key_concepts']
+        
         try:
             result = await content_designer.create_content(
                 section_info, 
                 course_topic=topic, 
-                user_background=user_background
+                user_background=user_background,
+                chapter_info=chapter_info  # 传递增强的章节信息
             )
             logger.info(f"ContentDesigner returned: {result}")
             
@@ -402,6 +455,12 @@ class AgentService:
     
     def _format_content_result(self, result: Any, section_info: Dict[str, Any]) -> Dict[str, Any]:
         """格式化章节内容结果"""
+        # 如果 ContentDesigner 返回的是标准格式，直接使用
+        if isinstance(result, dict) and all(key in result for key in ["title", "mainContent", "keyPoints"]):
+            logger.info("使用 ContentDesigner 生成的增强内容")
+            return result
+        
+        # 兼容旧格式（有 "content" 字段）
         if isinstance(result, dict) and "content" in result:
             # 提取内容并转换为前端期望的格式
             main_content = ""
@@ -444,6 +503,7 @@ class AgentService:
                 "curriculumAlignment": curriculum_alignment or ["符合课程标准要求", "对应学习目标", "适合目标年龄段"]
             }
         else:
+            logger.warning("使用默认内容，因为 ContentDesigner 返回了无效格式")
             return self._get_default_section_content(section_info)
     
     def _get_default_section_content(self, section_info: Dict[str, Any]) -> Dict[str, Any]:

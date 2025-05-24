@@ -12,17 +12,66 @@ import { Separator } from '@/components/ui/separator';
 interface Section {
   id: string;
   title: string;
+  content_type?: string;
+  activity_suggestion?: string;
+}
+
+interface BloomTaxonomyObjectives {
+  remember: string[];
+  understand: string[];
+  apply: string[];
+  analyze: string[];
+  evaluate: string[];
+  create: string[];
+}
+
+interface TeachingResources {
+  interactive_activities: string[];
+  media_types: string[];
+  assessment_methods: string[];
+}
+
+interface ContentDesignGuidance {
+  content_structure: string;
+  difficulty_level: string;
+  examples_needed: string;
+  practice_activities: string;
+}
+
+interface BackgroundAnalysis {
+  target_age: string;
+  knowledge_level: string;
+  learning_context: string;
+}
+
+interface CurriculumAlignment {
+  standards_used: string;
+  alignment_overview: string;
 }
 
 interface Chapter {
   id: string;
   title: string;
+  description?: string;
+  estimated_duration?: string;
+  bloom_focus?: string[];
+  learning_objectives?: string[];
+  key_concepts?: string[];
+  teaching_resources?: TeachingResources;
+  content_design_guidance?: ContentDesignGuidance;
+  curriculum_alignment?: string;
   sections: Section[];
 }
 
 interface CourseOutline {
-  title: string;
+  course_title?: string;
+  course_description?: string;
+  background_analysis?: BackgroundAnalysis;
+  bloom_taxonomy_objectives?: BloomTaxonomyObjectives;
+  curriculum_alignment?: CurriculumAlignment;
   chapters: Chapter[];
+  // Legacy support for existing API responses
+  title?: string;
 }
 
 interface CourseContent {
@@ -147,9 +196,15 @@ const CoursePlanning = () => {
           console.log(`Course found in ${existsResult.source}, using existing course`);
           const courseData = existsResult.course_data;
           
-          // 验证和清理数据
-          const validatedData = {
-            title: courseData?.title || `${initialPrompt} 课程大纲`,
+          // 验证和清理数据 - 支持新旧格式
+          const validatedData: CourseOutline = {
+            // 处理标题 - 支持新格式(course_title)和旧格式(title)
+            title: courseData?.course_title || courseData?.title || `${initialPrompt} 课程大纲`,
+            course_title: courseData?.course_title || courseData?.title || `${initialPrompt} 课程大纲`,
+            course_description: courseData?.course_description,
+            background_analysis: courseData?.background_analysis,
+            bloom_taxonomy_objectives: courseData?.bloom_taxonomy_objectives,
+            curriculum_alignment: courseData?.curriculum_alignment,
             chapters: Array.isArray(courseData?.chapters) ? courseData.chapters : []
           };
           
@@ -196,9 +251,15 @@ const CoursePlanning = () => {
         
         console.log('Raw API response:', data);
         
-        // 验证和清理数据
-        const validatedData = {
-          title: data?.title || `${initialPrompt} 课程大纲`,
+        // 验证和清理数据 - 支持新旧格式
+        const validatedData: CourseOutline = {
+          // 处理标题 - 支持新格式(course_title)和旧格式(title)
+          title: data?.course_title || data?.title || `${initialPrompt} 课程大纲`,
+          course_title: data?.course_title || data?.title || `${initialPrompt} 课程大纲`,
+          course_description: data?.course_description,
+          background_analysis: data?.background_analysis,
+          bloom_taxonomy_objectives: data?.bloom_taxonomy_objectives,
+          curriculum_alignment: data?.curriculum_alignment,
           chapters: Array.isArray(data?.chapters) ? data.chapters : []
         };
         
@@ -333,12 +394,83 @@ const CoursePlanning = () => {
             <LoadingPlaceholder lines={10} />
           ) : outline ? (
             <div>
-              <h3 className="text-lg font-semibold mb-2">{outline.title}</h3>
+              <h3 className="text-lg font-semibold mb-2">{outline.title || outline.course_title}</h3>
+              
+              {/* Enhanced course metadata */}
+              {(outline.course_description || outline.bloom_taxonomy_objectives || outline.curriculum_alignment) && (
+                <div className="mb-6 space-y-4">
+                  {/* Course description */}
+                  {outline.course_description && (
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <h4 className="text-sm font-medium text-blue-800 mb-1">课程简介</h4>
+                      <p className="text-sm text-blue-700">{outline.course_description}</p>
+                    </div>
+                  )}
+                  
+                  {/* Background analysis */}
+                  {outline.background_analysis && (
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <h4 className="text-sm font-medium text-green-800 mb-1">学习背景</h4>
+                      <div className="text-xs text-green-700 space-y-1">
+                        {outline.background_analysis.target_age && (
+                          <div><span className="font-medium">目标年龄:</span> {outline.background_analysis.target_age}</div>
+                        )}
+                        {outline.background_analysis.knowledge_level && (
+                          <div><span className="font-medium">知识水平:</span> {outline.background_analysis.knowledge_level}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Bloom's taxonomy objectives */}
+                  {outline.bloom_taxonomy_objectives && (
+                    <div className="bg-purple-50 p-3 rounded-lg">
+                      <h4 className="text-sm font-medium text-purple-800 mb-2">学习目标层次</h4>
+                      <div className="text-xs text-purple-700 space-y-1">
+                        {Object.entries(outline.bloom_taxonomy_objectives).map(([level, objectives]) => (
+                          objectives && objectives.length > 0 && (
+                            <div key={level}>
+                              <span className="font-medium capitalize">{level}:</span>
+                              <span className="ml-1">{objectives.slice(0, 2).join('、')}</span>
+                              {objectives.length > 2 && '...'}
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Curriculum alignment */}
+                  {outline.curriculum_alignment && (
+                    <div className="bg-orange-50 p-3 rounded-lg">
+                      <h4 className="text-sm font-medium text-orange-800 mb-1">课标对齐</h4>
+                      <p className="text-xs text-orange-700">{outline.curriculum_alignment.standards_used}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="space-y-4 mt-4">
                 {outline.chapters && outline.chapters.length > 0 ? (
                   outline.chapters.map((chapter) => (
                     <div key={chapter.id} className="space-y-2">
-                      <h4 className="font-medium text-gray-900">{chapter.title}</h4>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <h4 className="font-medium text-gray-900">{chapter.title}</h4>
+                        {chapter.description && (
+                          <p className="text-xs text-gray-600 mt-1">{chapter.description}</p>
+                        )}
+                        {chapter.estimated_duration && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            ⏱️ {chapter.estimated_duration}
+                          </div>
+                        )}
+                        {chapter.key_concepts && chapter.key_concepts.length > 0 && (
+                          <div className="text-xs text-purple-600 mt-1">
+                            🎯 {chapter.key_concepts.slice(0, 3).join('、')}
+                            {chapter.key_concepts.length > 3 && '...'}
+                          </div>
+                        )}
+                      </div>
                       <ul className="ml-4 space-y-1">
                         {chapter.sections && chapter.sections.length > 0 ? (
                           chapter.sections.map((section) => (

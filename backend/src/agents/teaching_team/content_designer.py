@@ -10,6 +10,7 @@ from agno.models.ollama import Ollama
 from agno.models.xai import xAI
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.reasoning import ReasoningTools
+from agno.tools.reasoning import ReasoningTools
 from agno.memory.v2 import Memory
 
 # 导入记忆管理器
@@ -59,7 +60,8 @@ class ContentDesignerAgent:
     async def create_content(self, section_info: Dict[str, Any], 
                            course_id: Optional[int] = None,
                            course_topic: Optional[str] = None,
-                           user_background: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                           user_background: Optional[Dict[str, Any]] = None,
+                           chapter_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         为特定章节创建内容，并存储到记忆管理器中
         
@@ -68,6 +70,7 @@ class ContentDesignerAgent:
             course_id: 课程ID（可选）
             course_topic: 课程主题（可选，用于搜索相关内容）
             user_background: 用户背景信息，包含年龄、学习目标、知识水平等（可选）
+            chapter_info: 增强的章节信息，包含content_design_guidance等字段（可选）
             
         Returns:
             Dict[str, Any]: 包含章节内容的字典
@@ -89,38 +92,34 @@ class ContentDesignerAgent:
         # 构建发送给Agent的消息
         # 首先准备JSON模板字符串（避免f-string中的大括号冲突）
         json_template = '''{
-  "content": [
+  "title": "章节标题",
+  "mainContent": "主要内容（使用Markdown格式）",
+  "keyPoints": ["关键知识点1", "关键知识点2", "关键知识点3"],
+  "images": [
     {
-      "type": "introduction",
-      "text": "内容介绍"
-    },
+      "url": "/placeholder.svg",
+      "caption": "图片说明"
+    }
+  ],
+  "curriculumAlignment": ["课标对齐点1", "课标对齐点2"],
+  "activities": [
     {
-      "type": "concept",
-      "title": "概念标题",
-      "explanation": "概念解释",
-      "examples": ["示例1", "示例2"]
-    },
-    {
-      "type": "activity",
+      "type": "interactive",
       "title": "活动标题",
       "description": "活动描述",
-      "steps": ["步骤1", "步骤2"]
-    },
+      "instructions": ["步骤1", "步骤2", "步骤3"],
+      "materials": ["所需材料1", "所需材料2"]
+    }
+  ],
+  "assessments": [
     {
-      "type": "media",
-      "title": "媒体标题",
-      "description": "媒体描述",
-      "media_type": "image/video/audio",
-      "suggestion": "媒体建议"
-    },
-    {
-      "type": "assessment",
+      "type": "quiz",
       "questions": [
         {
           "question": "问题描述",
-          "type": "multiple_choice/short_answer/etc",
-          "options": ["选项1", "选项2"],
-          "answer": "正确答案",
+          "type": "multiple_choice",
+          "options": ["选项A", "选项B", "选项C", "选项D"],
+          "correct_answer": "A",
           "explanation": "答案解释"
         }
       ]
@@ -128,6 +127,42 @@ class ContentDesignerAgent:
   ]
 }'''
         
+        # 构建内容设计指导信息
+        design_guidance_content = ""
+        if chapter_info and chapter_info.get('content_design_guidance'):
+            guidance = chapter_info['content_design_guidance']
+            design_guidance_content = f"""
+
+## 内容设计指导（重要：必须严格遵循）
+- 内容结构: {guidance.get('content_structure', '未指定')}
+- 难度等级: {guidance.get('difficulty_level', '未指定')}
+- 示例需求: {guidance.get('examples_needed', '未指定')}
+- 练习活动: {guidance.get('practice_activities', '未指定')}
+
+请严格按照上述指导设计内容，确保结构清晰、难度适当、示例充分、练习有效。"""
+
+        # 构建教学资源建议
+        teaching_resources_content = ""
+        if chapter_info and chapter_info.get('teaching_resources'):
+            resources = chapter_info['teaching_resources']
+            teaching_resources_content = f"""
+
+## 教学资源建议
+- 互动活动: {', '.join(resources.get('interactive_activities', []))}
+- 媒体类型: {', '.join(resources.get('media_types', []))}
+- 评估方法: {', '.join(resources.get('assessment_methods', []))}
+
+请在内容中体现这些教学资源的使用。"""
+
+        # 构建布鲁姆分层目标
+        bloom_objectives_content = ""
+        if chapter_info and chapter_info.get('bloom_focus'):
+            bloom_objectives_content = f"""
+
+## 布鲁姆认知层级重点
+本章节重点关注: {', '.join(chapter_info['bloom_focus'])}
+请确保内容设计能够帮助学习者达到相应的认知层级。"""
+
         # 构建用户背景信息部分
         background_content = ""
         if user_background:
@@ -151,6 +186,8 @@ class ContentDesignerAgent:
 章节ID: {section_info.get('id', 'Unknown')}
 章节标题: {section_info.get('title', 'Unknown')}
 章节描述: {section_info.get('description', 'No description provided')}
+内容类型: {section_info.get('content_type', '概念讲解')}
+活动建议: {section_info.get('activity_suggestion', '无特殊建议')}
 
 学习目标:
 {self._format_list(section_info.get('learning_objectives', []))}
@@ -158,6 +195,9 @@ class ContentDesignerAgent:
 关键要点:
 {self._format_list(section_info.get('key_points', []))}
 
+{design_guidance_content}
+{teaching_resources_content}
+{bloom_objectives_content}
 {background_content}"""
 
         if context_info:
@@ -179,9 +219,20 @@ class ContentDesignerAgent:
         message = Message(role="user", content=content)
         
         # 发送消息并获取回复
-        logger.info("Sending message to ContentDesigner agno agent...")
+        logger.info("=== CONTENT DESIGNER DEBUG ===")
+        logger.info(f"章节信息: {section_info}")
+        logger.info(f"是否有增强章节信息: {chapter_info is not None}")
+        if chapter_info:
+            logger.info(f"增强章节信息详情: {json.dumps(chapter_info, ensure_ascii=False, indent=2)}")
+        logger.info(f"发送给Agent的完整消息内容: {content}")
+        logger.info("=== 开始调用Ollama ===")
+        
         response = await self.agent.arun(message)
-        logger.info(f"Raw response from ContentDesigner: {response.content}")
+        
+        logger.info("=== Ollama响应完成 ===")
+        logger.info(f"原始响应长度: {len(response.content)} 字符")
+        logger.info(f"原始响应前500字符: {response.content[:500]}")
+        logger.info(f"原始响应后500字符: {response.content[-500:]}")
         
         # 清理响应内容，移除thinking标签和其他非JSON内容
         cleaned_content = response.content

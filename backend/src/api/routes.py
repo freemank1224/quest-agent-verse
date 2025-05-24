@@ -30,6 +30,12 @@ class MessageRequest(BaseModel):
 class CourseOutlineResponse(BaseModel):
     title: str
     chapters: List[Dict[str, Any]]
+    # 增强字段
+    course_title: Optional[str] = None
+    course_description: Optional[str] = None
+    background_analysis: Optional[Dict[str, Any]] = None
+    bloom_taxonomy_objectives: Optional[Dict[str, Any]] = None
+    curriculum_alignment: Optional[Dict[str, Any]] = None
 
 class CourseContentResponse(BaseModel):
     title: str
