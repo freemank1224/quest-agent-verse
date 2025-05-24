@@ -430,7 +430,7 @@ const CoursePlanning = () => {
 
           {/* Learning Objectives Section - Collapsible */}
           {outline?.bloom_taxonomy_objectives && (
-            <div className="p-4 border-b border-gray-100 bg-purple-25">
+            <div className="p-4 bg-purple-25">
               <details className="group">
                 <summary className="cursor-pointer text-sm font-medium text-purple-800 mb-2 list-none flex items-center justify-between">
                   <span>🎯 学习目标 (布鲁姆分类)</span>
@@ -454,10 +454,20 @@ const CoursePlanning = () => {
             </div>
           )}
 
+          {/* 固定的课程章节标题 - 毛玻璃效果，最高 Z-index，紧贴学习目标区域 */}
+          <div className="sticky top-0 z-50 backdrop-blur-md bg-white/90 border-t border-gray-200/60 shadow-sm">
+            <h4 className="text-sm font-medium text-gray-900 px-4 py-3 flex items-center space-x-2">
+              <span>📖 课程章节</span>
+              {outline?.chapters && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700 ml-auto">
+                  {outline.chapters.length}章
+                </span>
+              )}
+            </h4>
+          </div>
+
           {/* Course Navigation - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <h4 className="text-sm font-medium text-gray-900 mb-3 sticky top-0 bg-white pb-1">📖 课程章节</h4>
-            
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
             {isLoadingOutline ? (
               <LoadingPlaceholder lines={8} />
             ) : outline && outline.chapters ? (
@@ -499,14 +509,14 @@ const CoursePlanning = () => {
                           <button
                             key={section.id}
                             onClick={() => setSelectedSection(section.id)}
-                            className={`text-left w-full p-2 text-sm rounded-lg border transition-all duration-200 ${
+                            className={`text-left w-full p-2 text-sm rounded-lg border transition-all duration-200 relative ${
                               selectedSection === section.id
-                                ? 'bg-primary text-white border-primary shadow-md transform scale-[1.02]'
-                                : 'text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                ? 'bg-primary text-white border-primary shadow-md z-10'
+                                : 'text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300 z-0'
                             }`}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-medium">{sectionIndex + 1}.{chapterIndex + 1} {section.title}</span>
+                              <span className="font-medium">{chapterIndex + 1}.{sectionIndex + 1} {section.title}</span>
                               {selectedSection === section.id && (
                                 <svg className="w-4 h-4 ml-2" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />

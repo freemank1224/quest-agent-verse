@@ -32,6 +32,7 @@ const BLOOM_LABELS = {
 };
 
 interface CourseData {
+  // 完整课程数据格式 (CoursePlanner 生成)
   course_title?: string;
   course_description?: string;
   background_analysis?: {
@@ -46,6 +47,11 @@ interface CourseData {
     standards_used?: string;
     alignment_overview?: string;
   };
+  // 简化课程数据格式 (缓存数据)
+  title?: string;
+  description?: string;
+  topic?: string;
+  saved_at?: string;
   chapters?: Array<{
     id: string;
     title: string;
@@ -209,7 +215,20 @@ const EnhancedLearningProgress: React.FC<EnhancedLearningProgressProps> = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      {/* 固定的课程章节标题 - 毛玻璃效果，最高 Z-index */}
+      {courseData?.chapters && courseData.chapters.length > 0 && (
+        <div className="sticky top-0 z-50 backdrop-blur-md bg-white/90 border-b border-gray-200/60 px-3 py-2 -mx-3 mb-4 shadow-sm">
+          <h3 className="text-sm font-medium text-gray-900 flex items-center space-x-2">
+            <BookOpen className="w-4 h-4 text-blue-600" />
+            <span>课程章节</span>
+            <Badge variant="outline" className="text-xs ml-auto">
+              {courseData.chapters.length}章
+            </Badge>
+          </h3>
+        </div>
+      )}
+
       {/* 课程信息概览 */}
       <Card>
         <CardHeader 
@@ -219,7 +238,7 @@ const EnhancedLearningProgress: React.FC<EnhancedLearningProgressProps> = ({
           <CardTitle className="flex items-center justify-between text-sm font-medium">
             <div className="flex items-center space-x-2">
               <BookOpen className="w-4 h-4" />
-              <span>课程信息</span>
+              <span>课程概览</span>
             </div>
             {expandedSections.course ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           </CardTitle>
@@ -230,11 +249,11 @@ const EnhancedLearningProgress: React.FC<EnhancedLearningProgressProps> = ({
               <div className="space-y-3">
                 <div>
                   <h4 className="font-medium text-sm text-gray-900">
-                    {courseData.course_title || initialPrompt}
+                    {courseData.course_title || courseData.title || initialPrompt}
                   </h4>
-                  {courseData.course_description && (
+                  {(courseData.course_description || courseData.description) && (
                     <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                      {courseData.course_description}
+                      {courseData.course_description || courseData.description}
                     </p>
                   )}
                 </div>
@@ -264,6 +283,51 @@ const EnhancedLearningProgress: React.FC<EnhancedLearningProgressProps> = ({
                     <p className="text-gray-600 mt-1">
                       {courseData.curriculum_alignment.standards_used || '标准课程体系'}
                     </p>
+                  </div>
+                )}
+
+                {/* 显示完整课程章节信息 */}
+                {courseData.chapters && courseData.chapters.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    <Separator />
+                    <h5 className="text-xs font-medium text-gray-700">完整课程章节</h5>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {courseData.chapters.map((chapter, chapterIndex) => (
+                        <div key={chapter.id} className="space-y-1">
+                          <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span className="text-xs font-medium text-gray-800">
+                              第{chapterIndex + 1}章: {chapter.title}
+                            </span>
+                            {chapter.description && (
+                              <Badge variant="outline" className="text-xs">
+                                {chapter.sections?.length || 0}节
+                              </Badge>
+                            )}
+                          </div>
+                          {chapter.description && (
+                            <p className="text-xs text-gray-600 ml-2 mb-1">
+                              {chapter.description}
+                            </p>
+                          )}
+                          {chapter.sections && (
+                            <div className="ml-4 space-y-1">
+                              {chapter.sections.map((section, sectionIndex) => (                              <div 
+                                key={section.id} 
+                                className={`text-xs p-1.5 rounded transition-colors cursor-pointer relative z-10 ${
+                                  currentSection === section.id 
+                                    ? 'bg-purple-100 text-purple-800 border border-purple-200 shadow-sm' 
+                                    : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                                onClick={() => setCurrentSection(section.id)}
+                              >
+                                {chapterIndex + 1}.{sectionIndex + 1} {section.title}
+                              </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -307,11 +371,13 @@ const EnhancedLearningProgress: React.FC<EnhancedLearningProgressProps> = ({
               
               {courseData?.chapters && (
                 <div className="space-y-2">
-                  <h5 className="text-xs font-medium text-gray-700">章节概览</h5>
-                  {courseData.chapters.slice(0, 3).map((chapter, index) => (
+                  <h5 className="text-xs font-medium text-gray-700">近期章节</h5>
+                  {courseData.chapters.slice(0, 3).map((chapter, chapterIndex) => (
                     <div key={chapter.id} className="text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600 truncate">{chapter.title}</span>
+                        <span className="text-gray-600 truncate">
+                          第{chapterIndex + 1}章: {chapter.title}
+                        </span>
                         <div className="flex items-center space-x-1">
                           {chapter.estimated_duration && (
                             <Badge variant="outline" className="text-xs px-1 py-0">
@@ -321,6 +387,20 @@ const EnhancedLearningProgress: React.FC<EnhancedLearningProgressProps> = ({
                           )}
                         </div>
                       </div>
+                      {chapter.sections && (
+                        <div className="ml-2 mt-1 space-y-1">
+                          {chapter.sections.slice(0, 2).map((section, sectionIndex) => (
+                            <div key={section.id} className="text-xs text-gray-500">
+                              {chapterIndex + 1}.{sectionIndex + 1} {section.title}
+                            </div>
+                          ))}
+                          {chapter.sections.length > 2 && (
+                            <div className="text-xs text-gray-400">
+                              +{chapter.sections.length - 2} 更多小节
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {chapter.bloom_focus && chapter.bloom_focus.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {chapter.bloom_focus.slice(0, 2).map((focus) => (
