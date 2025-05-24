@@ -18,11 +18,16 @@ const Index = () => {
   const [learningGoal, setLearningGoal] = useState('');
   const [timePreference, setTimePreference] = useState('');
   const navigate = useNavigate();
-  const { setInitialPrompt, setUserBackground, createFormattedPrompt, sendMessage } = useChat();
+  const { setInitialPrompt, setUserBackground, createFormattedPrompt, sendMessage, initialPrompt, resetForNewTopic } = useChat();
   const { user } = useAuth();
 
   const handleSubmit = () => {
     if (!prompt.trim()) return;
+    
+    // 如果用户输入了新的主题（与当前主题不同），重置所有状态
+    if (initialPrompt && prompt.trim() !== initialPrompt.trim()) {
+      resetForNewTopic();
+    }
     
     // 显示问题弹窗来收集背景信息
     setShowQuestionModal(true);

@@ -84,7 +84,7 @@ interface CourseContent {
 
 const CoursePlanning = () => {
   const navigate = useNavigate();
-  const { initialPrompt } = useChat();
+  const { initialPrompt, setHasCourseGenerated } = useChat();
   const [outline, setOutline] = useState<CourseOutline | null>(null);
   const [content, setContent] = useState<CourseContent | null>(null);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
@@ -181,6 +181,7 @@ const CoursePlanning = () => {
           console.log('Using cached course outline from localStorage');
           setOutline(cachedOutline);
           setCourseSource('localStorage');
+          setHasCourseGenerated(true); // 确保状态同步
           
           // Select the first section by default
           if (cachedOutline.chapters.length > 0 && cachedOutline.chapters[0].sections.length > 0) {
@@ -226,6 +227,7 @@ const CoursePlanning = () => {
 
           setOutline(validatedData);
           setCourseSource(existsResult.source);
+          setHasCourseGenerated(true); // 确保状态同步
           
           // 保存到localStorage
           saveCourseToStorage(initialPrompt, validatedData);
@@ -282,6 +284,7 @@ const CoursePlanning = () => {
         console.log('Validated data:', validatedData);
         setOutline(validatedData);
         setCourseSource('api');
+        setHasCourseGenerated(true); // 确保状态同步
         
         // 保存到localStorage
         saveCourseToStorage(initialPrompt, validatedData);
@@ -374,222 +377,310 @@ const CoursePlanning = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
       
-      <main className="flex-grow flex flex-col md:flex-row">
-        {/* Left sidebar - Course outline */}
-        <div className="w-full md:w-1/4 bg-white shadow-sm p-4 md:p-6 overflow-y-auto max-h-[calc(100vh-4rem)]">
-          <h2 className="text-xl font-bold mb-4 font-display">课程大纲</h2>
+      <main className="flex-grow flex">
+        {/* Left sidebar - Course overview and navigation (fixed width, scrollable) */}
+        <div className="w-80 bg-white shadow-lg border-r border-gray-200 flex flex-col h-[calc(100vh-4rem)]">
           
-          {/* 显示内容来源 */}
-          {courseSource && (
-            <div className="mb-4 text-xs text-gray-500">
-              {courseSource === 'localStorage' && '📱 从本地缓存加载'}
-              {courseSource === 'memory' && '🧠 从记忆库加载'}
-              {courseSource === 'file' && '📄 从文件加载'}
-              {courseSource === 'api' && '🆕 新生成的内容'}
-              {courseSource === 'fallback' && '⚠️ 默认内容'}
-            </div>
-          )}
-          
-          {isLoadingOutline ? (
-            <LoadingPlaceholder lines={10} />
-          ) : outline ? (
-            <div>
-              <h3 className="text-lg font-semibold mb-2">{outline.title || outline.course_title}</h3>
-              
-              {/* Enhanced course metadata */}
-              {(outline.course_description || outline.bloom_taxonomy_objectives || outline.curriculum_alignment) && (
-                <div className="mb-6 space-y-4">
-                  {/* Course description */}
-                  {outline.course_description && (
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <h4 className="text-sm font-medium text-blue-800 mb-1">课程简介</h4>
-                      <p className="text-sm text-blue-700">{outline.course_description}</p>
-                    </div>
-                  )}
-                  
-                  {/* Background analysis */}
-                  {outline.background_analysis && (
-                    <div className="bg-green-50 p-3 rounded-lg">
-                      <h4 className="text-sm font-medium text-green-800 mb-1">学习背景</h4>
-                      <div className="text-xs text-green-700 space-y-1">
-                        {outline.background_analysis.target_age && (
-                          <div><span className="font-medium">目标年龄:</span> {outline.background_analysis.target_age}</div>
-                        )}
-                        {outline.background_analysis.knowledge_level && (
-                          <div><span className="font-medium">知识水平:</span> {outline.background_analysis.knowledge_level}</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Bloom's taxonomy objectives */}
-                  {outline.bloom_taxonomy_objectives && (
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <h4 className="text-sm font-medium text-purple-800 mb-2">学习目标层次</h4>
-                      <div className="text-xs text-purple-700 space-y-1">
-                        {Object.entries(outline.bloom_taxonomy_objectives).map(([level, objectives]) => (
-                          objectives && objectives.length > 0 && (
-                            <div key={level}>
-                              <span className="font-medium capitalize">{level}:</span>
-                              <span className="ml-1">{objectives.slice(0, 2).join('、')}</span>
-                              {objectives.length > 2 && '...'}
-                            </div>
-                          )
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Curriculum alignment */}
-                  {outline.curriculum_alignment && (
-                    <div className="bg-orange-50 p-3 rounded-lg">
-                      <h4 className="text-sm font-medium text-orange-800 mb-1">课标对齐</h4>
-                      <p className="text-xs text-orange-700">{outline.curriculum_alignment.standards_used}</p>
-                    </div>
-                  )}
+          {/* Course Overview Section - Fixed at top */}
+          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex items-start justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-900 font-display">课程概览</h2>
+              {courseSource && (
+                <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
+                  {courseSource === 'localStorage' && '📱 缓存'}
+                  {courseSource === 'memory' && '🧠 记忆'}
+                  {courseSource === 'file' && '📄 文件'}
+                  {courseSource === 'api' && '🆕 新建'}
+                  {courseSource === 'fallback' && '⚠️ 默认'}
                 </div>
               )}
-              
-              <div className="space-y-4 mt-4">
-                {outline.chapters && outline.chapters.length > 0 ? (
-                  outline.chapters.map((chapter) => (
-                    <div key={chapter.id} className="space-y-2">
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <h4 className="font-medium text-gray-900">{chapter.title}</h4>
-                        {chapter.description && (
-                          <p className="text-xs text-gray-600 mt-1">{chapter.description}</p>
-                        )}
-                        {chapter.estimated_duration && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            ⏱️ {chapter.estimated_duration}
-                          </div>
-                        )}
-                        {chapter.key_concepts && chapter.key_concepts.length > 0 && (
-                          <div className="text-xs text-purple-600 mt-1">
-                            🎯 {chapter.key_concepts.slice(0, 3).join('、')}
-                            {chapter.key_concepts.length > 3 && '...'}
-                          </div>
-                        )}
-                      </div>
-                      <ul className="ml-4 space-y-1">
-                        {chapter.sections && chapter.sections.length > 0 ? (
-                          chapter.sections.map((section) => (
-                            <li key={section.id}>
-                              <button
-                                onClick={() => setSelectedSection(section.id)}
-                                className={`text-left w-full p-1.5 text-sm rounded hover:bg-gray-100 ${
-                                  selectedSection === section.id
-                                    ? 'bg-primary/10 text-primary font-medium'
-                                    : 'text-gray-700'
-                                }`}
-                              >
-                                {section.title}
-                              </button>
-                            </li>
-                          ))
-                        ) : (
-                          <li className="text-sm text-gray-500 ml-4">暂无章节内容</li>
-                        )}
-                      </ul>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">暂无课程章节</p>
+            </div>
+            
+            {isLoadingOutline ? (
+              <LoadingPlaceholder lines={4} />
+            ) : outline ? (
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 mb-2 leading-tight">
+                  {outline.title || outline.course_title}
+                </h3>
+                
+                {outline.course_description && (
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-3">{outline.course_description}</p>
+                )}
+                
+                {outline.background_analysis && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {outline.background_analysis.target_age && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
+                        👥 {outline.background_analysis.target_age}
+                      </span>
+                    )}
+                    {outline.background_analysis.knowledge_level && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                        📚 {outline.background_analysis.knowledge_level}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
-              <div className="mt-8">
-                <Button onClick={handleStartLearning} className="w-full">
-                  开始学习
-                </Button>
-              </div>
+            ) : (
+              <p className="text-sm text-gray-500">加载中...</p>
+            )}
+          </div>
+
+          {/* Learning Objectives Section - Collapsible */}
+          {outline?.bloom_taxonomy_objectives && (
+            <div className="p-4 border-b border-gray-100 bg-purple-25">
+              <details className="group">
+                <summary className="cursor-pointer text-sm font-medium text-purple-800 mb-2 list-none flex items-center justify-between">
+                  <span>🎯 学习目标 (布鲁姆分类)</span>
+                  <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="mt-2 space-y-1 text-xs text-purple-700">
+                  {Object.entries(outline.bloom_taxonomy_objectives).map(([level, objectives]) => (
+                    objectives && objectives.length > 0 && (
+                      <div key={level} className="flex">
+                        <span className="font-medium capitalize w-16 flex-shrink-0">{level}:</span>
+                        <span className="flex-1">{objectives.slice(0, 1).join('、')}
+                          {objectives.length > 1 && `等${objectives.length}项`}
+                        </span>
+                      </div>
+                    )
+                  ))}
+                </div>
+              </details>
             </div>
-          ) : (
-            <p>没有可用的课程大纲</p>
           )}
+
+          {/* Course Navigation - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-3 sticky top-0 bg-white pb-1">📖 课程章节</h4>
+            
+            {isLoadingOutline ? (
+              <LoadingPlaceholder lines={8} />
+            ) : outline && outline.chapters ? (
+              <div className="space-y-3">
+                {outline.chapters.map((chapter, chapterIndex) => (
+                  <div key={chapter.id} className="space-y-2">
+                    {/* Chapter header */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
+                      <h5 className="font-medium text-gray-900 text-sm mb-1">{chapter.title}</h5>
+                      {chapter.description && (
+                        <p className="text-xs text-gray-600 mb-2 line-clamp-2">{chapter.description}</p>
+                      )}
+                      
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {chapter.estimated_duration && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">
+                            ⏱️ {chapter.estimated_duration}
+                          </span>
+                        )}
+                        {chapter.bloom_focus && chapter.bloom_focus.length > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">
+                            🎯 {chapter.bloom_focus.slice(0, 2).join('、')}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {chapter.key_concepts && chapter.key_concepts.length > 0 && (
+                        <div className="text-xs text-gray-600">
+                          <span className="font-medium">核心概念:</span> {chapter.key_concepts.slice(0, 2).join('、')}
+                          {chapter.key_concepts.length > 2 && '...'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chapter sections */}
+                    <div className="ml-4 space-y-1">
+                      {chapter.sections && chapter.sections.length > 0 ? (
+                        chapter.sections.map((section, sectionIndex) => (
+                          <button
+                            key={section.id}
+                            onClick={() => setSelectedSection(section.id)}
+                            className={`text-left w-full p-2 text-sm rounded-lg border transition-all duration-200 ${
+                              selectedSection === section.id
+                                ? 'bg-primary text-white border-primary shadow-md transform scale-[1.02]'
+                                : 'text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{sectionIndex + 1}.{chapterIndex + 1} {section.title}</span>
+                              {selectedSection === section.id && (
+                                <svg className="w-4 h-4 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            {section.content_type && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                📄 {section.content_type}
+                              </div>
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="text-sm text-gray-500 p-2 italic">暂无章节内容</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 text-sm">暂无课程章节</div>
+            )}
+          </div>
+
+          {/* Action buttons - Fixed at bottom */}
+          <div className="p-4 border-t border-gray-100 bg-white">
+            <Button onClick={handleStartLearning} className="w-full" size="sm">
+              🚀 开始互动学习
+            </Button>
+          </div>
         </div>
         
-        {/* Right area - Content */}
-        <div className="flex-grow p-4 md:p-8 overflow-y-auto max-h-[calc(100vh-4rem)]">
-          {isLoadingContent ? (
-            <div className="space-y-8">
-              <LoadingPlaceholder type="image" />
-              <LoadingPlaceholder lines={8} />
-              <LoadingPlaceholder lines={3} />
-            </div>
-          ) : content ? (
-            <div className="max-w-3xl mx-auto">
-              <h2 className="text-2xl font-bold mb-6 font-display">{content.title}</h2>
-              
-              {/* Images section */}
-              {content.images && content.images.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold mb-4">图片资源</h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    {content.images.map((image, index) => (
-                      <figure key={index} className="rounded-lg overflow-hidden shadow-md">
-                        <img 
-                          src={image.url} 
-                          alt={image.caption} 
-                          className="w-full h-auto object-cover"
-                        />
-                        <figcaption className="p-2 text-sm text-gray-600 bg-gray-50">
-                          {image.caption}
-                        </figcaption>
-                      </figure>
-                    ))}
-                  </div>
+        {/* Right area - Detailed content */}
+        <div className="flex-1 flex flex-col h-[calc(100vh-4rem)]">
+          
+          {/* Content header - Fixed */}
+          <div className="bg-white border-b border-gray-200 px-8 py-4 shadow-sm">
+            {selectedSection && content ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 font-display">{content.title}</h2>
+                  <p className="text-sm text-gray-600 mt-1">当前学习章节</p>
                 </div>
-              )}
-              
-              <Separator className="my-6" />
-              
-              {/* Main content */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4">主要内容</h3>
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <MarkdownRenderer content={content.mainContent} />
-                </div>
-              </div>
-              
-              <Separator className="my-6" />
-              
-              {/* Key points */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4">核心知识点</h3>
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <ul className="list-disc list-inside space-y-2">
-                    {content.keyPoints.map((point, index) => (
-                      <li key={index} className="text-gray-800">{point}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              
-              <Separator className="my-6" />
-              
-              {/* Curriculum alignment */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4">课标对齐</h3>
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <ul className="list-disc list-inside space-y-2">
-                    {content.curriculumAlignment.map((alignment, index) => (
-                      <li key={index} className="text-gray-800">{alignment}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              
-              <div className="mt-8 flex justify-center">
-                <Button onClick={handleStartLearning} size="lg">
-                  开始互动学习
+                <Button onClick={handleStartLearning} size="sm" variant="outline">
+                  开始练习
                 </Button>
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full">
-              <p className="text-gray-500">请选择一个章节以查看内容</p>
-            </div>
-          )}
+            ) : (
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 font-display">课程内容</h2>
+                <p className="text-sm text-gray-600 mt-1">请从左侧选择要学习的章节</p>
+              </div>
+            )}
+          </div>
+
+          {/* Content body - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-8 bg-gray-50">
+            {isLoadingContent ? (
+              <div className="max-w-4xl mx-auto space-y-8">
+                <LoadingPlaceholder type="image" />
+                <LoadingPlaceholder lines={8} />
+                <LoadingPlaceholder lines={3} />
+              </div>
+            ) : content ? (
+              <div className="max-w-4xl mx-auto space-y-8">
+                
+                {/* Images section */}
+                {content.images && content.images.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+                      🖼️ 图片资源
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {content.images.map((image, index) => (
+                        <figure key={index} className="rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+                          <img 
+                            src={image.url} 
+                            alt={image.caption} 
+                            className="w-full h-48 object-cover"
+                          />
+                          <figcaption className="p-3 text-sm text-gray-700 bg-gray-50">
+                            {image.caption}
+                          </figcaption>
+                        </figure>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Main content */}
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+                    📚 主要内容
+                  </h3>
+                  <div className="prose prose-gray max-w-none">
+                    <MarkdownRenderer content={content.mainContent} />
+                  </div>
+                </div>
+                
+                {/* Key points */}
+                {content.keyPoints && content.keyPoints.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+                      🎯 核心知识点
+                    </h3>
+                    <div className="grid gap-3">
+                      {content.keyPoints.map((point, index) => (
+                        <div key={index} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                          <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                            {index + 1}
+                          </div>
+                          <p className="text-gray-800 flex-1">{point}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Curriculum alignment */}
+                {content.curriculumAlignment && content.curriculumAlignment.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+                      📋 课标对齐
+                    </h3>
+                    <div className="space-y-2">
+                      {content.curriculumAlignment.map((alignment, index) => (
+                        <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg border border-green-100">
+                          <div className="flex-shrink-0 w-5 h-5 text-green-600 mt-0.5">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <p className="text-gray-800 flex-1">{alignment}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Call to action */}
+                <div className="text-center bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-8 text-white">
+                  <h3 className="text-xl font-bold mb-2">准备好开始学习了吗？</h3>
+                  <p className="text-blue-100 mb-4">开启您的互动学习之旅</p>
+                  <Button onClick={handleStartLearning} size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
+                    🚀 开始互动学习
+                  </Button>
+                </div>
+
+              </div>
+            ) : selectedSection ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">正在加载内容...</h3>
+                <p className="text-gray-500">请稍候，我们正在为您准备学习资料</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">选择一个章节开始学习</h3>
+                <p className="text-gray-500 max-w-md">
+                  从左侧课程导航中选择您想要学习的章节，我们将为您展示详细的学习内容和教学资源
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

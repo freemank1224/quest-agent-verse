@@ -48,6 +48,20 @@ export default {
 					DEFAULT: 'hsl(var(--accent))',
 					foreground: 'hsl(var(--accent-foreground))'
 				},
+				// Custom color variants
+				purple: {
+					25: '#faf7ff',
+					50: '#f3f0ff',
+					100: '#e9e5ff',
+					200: '#d4ccff',
+					300: '#b8a3ff',
+					400: '#9670ff',
+					500: '#7c3aed',
+					600: '#6d28d9',
+					700: '#5b21b6',
+					800: '#4c1d95',
+					900: '#3c1366',
+				},
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
 					foreground: 'hsl(var(--popover-foreground))'
@@ -82,8 +96,8 @@ export default {
 					to: { height: '0' }
 				},
 				'pulse-slow': {
-					'0%, 100%': { opacity: 1 },
-					'50%': { opacity: 0.5 }
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.5' }
 				},
 				'flow-right': {
 					'0%': { backgroundPosition: '0% 50%' },

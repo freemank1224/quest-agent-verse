@@ -32,22 +32,37 @@ class ContentDesignerAgent:
         # 使用 xAI 作为主要模型
         self.agent = Agent(
             name="ContentDesigner",
-            model=Ollama(id="qwen3:32b", host="http://localhost:11434"),  # 使用xAI的默认模型
+            # model=Ollama(id="qwen3:32b", host="http://localhost:11434"),  # 使用Ollama的Qwen模型
+            model=xAI(id="grok-3-beta", api_key=os.environ.get('XAI_API_KEY')),  # 使用xAI的Grok模型
             memory=Memory(),
             tools=[
-                ReasoningTools(),
-                DuckDuckGoTools()
+                ReasoningTools()
+                # DuckDuckGoTools()
             ],
             description="""
-            你是一个专业的教育内容设计专家，负责设计高质量的教学内容。你的任务是：
-            1. 根据课程大纲中的章节要求，设计详细的教学内容
-            2. 创建结构清晰、易于理解的教学材料
-            3. 确定核心知识点和学习要点
-            4. 建议合适的教学媒体（图像、视频等）
-            5. 确保内容与课标要求保持一致
-            6. 利用已有的课程记忆来保持内容的一致性和连贯性
+            你是一个专业的教育专家，负责设计高质量的教学内容。你的核心任务是：
+
+            ## 内容设计基础
+            1. 严格遵循课程规划团队(CoursePlanner)制定的整体课程大纲和框架
+            2. 创建结构清晰、易于理解的教学材料，保持课程内容的一致性和连贯性
+            3. 确保每个章节内容与整体课程目标和课标要求完全对齐
+            4. 必须理解当前章节在整个课程中的位置和作用，不能仅凭章节标题孤立地创建内容
+
+            ## 记忆与连贯性利用
+            5. 充分利用CoursePlanner的课程记忆，包括课程标题、描述、布鲁姆分类目标、课标对齐等
+            6. 明确考虑当前章节与前后章节的关系，确保内容的逻辑流程和知识构建是连贯的
+            7. 根据章节在课程中的位置和作用调整内容深度和广度，前置章节应打好基础，后续章节应建立在前置知识上
+
+            ## 用户背景适应
+            8. 严格根据提供的用户背景信息（如年龄、知识水平、学习目标）定制内容难度和教学方法
+            9. 如果用户背景信息不完整，参考课程设计中的默认受众信息
+
+            ## 内容质量要求
+            10. 确定核心知识点和学习要点，确保与布鲁姆分类目标对应
+            11. 建议合适的教学媒体（图像、视频等）和互动活动，符合章节设计指南
+            12. 根据章节的内容设计指导(content_design_guidance)调整内容结构、难度等级等
             
-            教学内容应当符合教育理论，使用适当的教学方法和策略。
+            教学内容必须符合教育理论，使用适当的教学方法和策略。你的设计应该确保学习者能够按照课程的整体规划，在理解前置知识的基础上，平稳地过渡到当前章节的学习内容。
             """
         )
         
@@ -79,15 +94,107 @@ class ContentDesignerAgent:
         
         # 获取相关的课程内容作为上下文
         context_info = []
-        if course_topic:
-            related_courses = self.memory_manager.search_courses_by_topic(course_topic)
-            if related_courses:
-                context_info.append(f"相关课程: {related_courses[0]['title']}")
+        course_outline = None
         
+        # 首先尝试通过课程ID获取完整的课程大纲
         if course_id:
             course_outline = self.memory_manager.get_course_outline(course_id)
             if course_outline:
-                context_info.append(f"课程目标: {', '.join(course_outline.get('learning_objectives', []))}")
+                # 添加课程基本信息
+                context_info.append(f"课程标题: {course_outline.get('course_title', course_outline.get('title', '未知'))}")
+                if 'course_description' in course_outline:
+                    context_info.append(f"课程描述: {course_outline['course_description']}")
+                
+                # 添加课程学习目标
+                if 'learning_objectives' in course_outline:
+                    context_info.append(f"课程整体学习目标: {', '.join(course_outline['learning_objectives'])}")
+                
+                # 添加课程的布鲁姆分类层级目标
+                if 'bloom_taxonomy_objectives' in course_outline and isinstance(course_outline['bloom_taxonomy_objectives'], dict):
+                    bloom_info = []
+                    for level, objectives in course_outline['bloom_taxonomy_objectives'].items():
+                        if objectives and len(objectives) > 0:
+                            bloom_info.append(f"{level}: {'; '.join(objectives)}")
+                    if bloom_info:
+                        context_info.append(f"课程布鲁姆分类层级目标:\n" + '\n'.join(bloom_info))
+                
+                # 添加课标对齐信息
+                if 'curriculum_alignment' in course_outline:
+                    if isinstance(course_outline['curriculum_alignment'], dict):
+                        ca = course_outline['curriculum_alignment']
+                        context_info.append(f"课程标准: {ca.get('standards_used', '未指定')}")
+                        context_info.append(f"课标对齐概述: {ca.get('alignment_overview', '未指定')}")
+                    elif isinstance(course_outline['curriculum_alignment'], str):
+                        context_info.append(f"课标对齐: {course_outline['curriculum_alignment']}")
+                
+                # 提取当前章节所在的完整章节信息及其在课程中的位置
+                if 'chapters' in course_outline and section_info and 'id' in section_info:
+                    section_id = section_info['id']
+                    current_chapter = None
+                    for chapter in course_outline['chapters']:
+                        if 'sections' in chapter:
+                            for section in chapter['sections']:
+                                if section.get('id') == section_id:
+                                    current_chapter = chapter
+                                    break
+                            if current_chapter:
+                                break
+                    
+                    if current_chapter:
+                        # 添加当前章节所在的章的总体信息
+                        context_info.append(f"所属章节: {current_chapter.get('title', '未知')}")
+                        if 'description' in current_chapter:
+                            context_info.append(f"章节描述: {current_chapter['description']}")
+                        if 'learning_objectives' in current_chapter:
+                            context_info.append(f"章节学习目标: {', '.join(current_chapter['learning_objectives'])}")
+                        if 'key_concepts' in current_chapter:
+                            context_info.append(f"章节核心概念: {', '.join(current_chapter['key_concepts'])}")
+                        
+                        # 添加章节在课程中的位置关系
+                        chapter_index = course_outline['chapters'].index(current_chapter)
+                        context_info.append(f"章节编号: 第{chapter_index + 1}章，共{len(course_outline['chapters'])}章")
+                        
+                        # 添加前后章节的信息以建立连贯性
+                        if chapter_index > 0:
+                            prev_chapter = course_outline['chapters'][chapter_index - 1]
+                            context_info.append(f"前置章节: {prev_chapter.get('title', '未知')}")
+                        
+                        if chapter_index < len(course_outline['chapters']) - 1:
+                            next_chapter = course_outline['chapters'][chapter_index + 1]
+                            context_info.append(f"后续章节: {next_chapter.get('title', '未知')}")
+                        
+                        # 添加当前章节中其他小节的信息，建立小节之间的关系
+                        if 'sections' in current_chapter:
+                            section_index = -1
+                            for i, sec in enumerate(current_chapter['sections']):
+                                if sec.get('id') == section_id:
+                                    section_index = i
+                                    break
+                            
+                            if section_index != -1:
+                                context_info.append(f"小节编号: 第{section_index + 1}节，共{len(current_chapter['sections'])}节")
+                                
+                                # 添加相邻小节信息
+                                if section_index > 0:
+                                    prev_section = current_chapter['sections'][section_index - 1]
+                                    context_info.append(f"前置小节: {prev_section.get('title', '未知')}")
+                                
+                                if section_index < len(current_chapter['sections']) - 1:
+                                    next_section = current_chapter['sections'][section_index + 1]
+                                    context_info.append(f"后续小节: {next_section.get('title', '未知')}")
+        
+        # 如果没有通过课程ID获取到信息，尝试通过课程主题搜索相关课程
+        if course_topic and not course_outline:
+            related_courses = self.memory_manager.search_courses_by_topic(course_topic)
+            if related_courses:
+                context_info.append(f"相关课程: {related_courses[0]['title']}")
+                
+                # 尝试获取相关课程的详细信息
+                related_outline = self.memory_manager.get_course_outline(related_courses[0]['id'])
+                if related_outline:
+                    context_info.append(f"相关课程描述: {related_outline.get('course_description', '未知')}")
+                    if 'learning_objectives' in related_outline:
+                        context_info.append(f"相关课程学习目标: {', '.join(related_outline.get('learning_objectives', []))}")
         
         # 构建发送给Agent的消息
         # 首先准备JSON模板字符串（避免f-string中的大括号冲突）
@@ -181,8 +288,9 @@ class ContentDesignerAgent:
 3. 示例和练习的复杂度
 4. 语言表达的方式和风格"""
 
-        content = f"""请根据以下章节信息，设计详细的教学内容：
+        content = f"""请根据以下信息，设计一个符合整体课程规划和教育理论的详细教学内容：
 
+## 当前章节基本信息
 章节ID: {section_info.get('id', 'Unknown')}
 章节标题: {section_info.get('title', 'Unknown')}
 章节描述: {section_info.get('description', 'No description provided')}
@@ -195,25 +303,45 @@ class ContentDesignerAgent:
 关键要点:
 {self._format_list(section_info.get('key_points', []))}
 
-{design_guidance_content}
-{teaching_resources_content}
-{bloom_objectives_content}
-{background_content}"""
+## 课程整体上下文（重要：内容设计必须与整体课程规划保持一致）
+"""
 
         if context_info:
-            content += f"\n\n课程上下文:\n{chr(10).join(context_info)}"
+            content += f"{chr(10).join(context_info)}"
+        else:
+            content += "无可用的课程整体上下文信息，请确保内容的连贯性和适当的难度水平。"
 
         content += f"""
 
-请提供以下内容：
-1. 详细的教学内容，包括概念解释、示例和应用
-2. 推荐的教学活动和练习
-3. 建议的教学媒体和资源
-4. 评估方法和问题
+{design_guidance_content}
+{teaching_resources_content}
+{bloom_objectives_content}
+{background_content}
 
-请以JSON格式返回你的回答，结构如下：
+## 设计要求（非常重要，请严格遵循）：
+1. 内容必须与整体课程规划和课标要求保持一致
+2. 考虑当前章节在整个课程中的位置，与前后章节建立清晰的知识连接
+3. 根据用户背景和章节指导调整内容难度和教学方法
+4. 确保内容支持布鲁姆分类层级中指定的认知目标
+5. 提供详细的教学内容，包括概念解释、生动的示例和实际应用
+6. 设计符合教育理论的教学活动和练习
+7. 建议适合目标受众的教学媒体和资源
+8. 开发有效的评估方法和问题
+
+请以JSON格式返回你的回答，确保格式完全正确：
 {json_template}
 """
+        
+        # 添加系统消息，强调利用CoursePlanner的记忆
+        system_message = """你是一个专业的教学内容设计专家ContentDesigner。
+        
+重要指导原则：
+1. 你必须完全遵循CoursePlanner的整体课程规划，将当前章节视为整体知识结构的一部分
+2. 课程的连贯性至关重要 - 必须考虑前序和后续章节，构建清晰的知识脉络
+3. 内容设计必须与课程大纲中定义的布鲁姆分类目标、课标对齐等保持一致
+4. 用户背景信息是内容难度和教学方法设计的关键依据
+
+请记住，你不是独立创作内容，而是严格按照整体课程规划来设计当前章节的具体内容。"""
         
         # 创建消息
         message = Message(role="user", content=content)
@@ -227,6 +355,8 @@ class ContentDesignerAgent:
         logger.info(f"发送给Agent的完整消息内容: {content}")
         logger.info("=== 开始调用Ollama ===")
         
+        # 设置系统提示，但不改变当前的agent.arun接口调用方式
+        self.agent.model.system = system_message
         response = await self.agent.arun(message)
         
         logger.info("=== Ollama响应完成 ===")
@@ -364,6 +494,48 @@ class ContentDesignerAgent:
             
             return default_content
     
+    async def get_full_course_context(self, course_id: int) -> Dict[str, Any]:
+        """
+        获取完整的课程上下文信息，包括课程大纲、布鲁姆分类目标、课标对齐等
+        作为ContentDesigner的全局指导
+        
+        Args:
+            course_id: 课程ID
+            
+        Returns:
+            Dict[str, Any]: 包含完整课程上下文的字典
+        """
+        logger.info(f"获取课程ID {course_id} 的完整上下文信息")
+        
+        try:
+            # 获取课程大纲
+            course_outline = self.memory_manager.get_course_outline(course_id)
+            if not course_outline:
+                logger.warning(f"未找到课程ID {course_id} 的大纲信息")
+                return {}
+            
+            # 获取课程结构
+            course_structure = self.course_memory.get_course_structure(course_id)
+            
+            # 构建完整的课程上下文信息
+            full_context = {
+                "course_info": {
+                    "id": course_id,
+                    "title": course_outline.get("course_title", course_outline.get("title")),
+                    "description": course_outline.get("course_description", ""),
+                },
+                "bloom_taxonomy_objectives": course_outline.get("bloom_taxonomy_objectives", {}),
+                "curriculum_alignment": course_outline.get("curriculum_alignment", {}),
+                "background_analysis": course_outline.get("background_analysis", {}),
+                "structure": course_structure
+            }
+            
+            logger.info(f"成功获取课程ID {course_id} 的完整上下文信息")
+            return full_context
+        except Exception as e:
+            logger.error(f"获取课程上下文信息时发生错误: {e}")
+            return {}
+    
     def get_section_content(self, section_id: str) -> Optional[Dict[str, Any]]:
         """
         从记忆管理器中获取章节内容
@@ -390,11 +562,31 @@ class ContentDesignerAgent:
         return self.course_memory.search_related_content(keywords, limit)
     
     def _format_list(self, items: List[str]) -> str:
-        """将列表格式化为带编号的文本"""
+        """将列表格式化为带编号的文本，支持字符串、字典和列表多种格式"""
         if not items:
             return "无"
         
-        return "\n".join([f"{i+1}. {item}" for i, item in enumerate(items)])
+        if isinstance(items, list):
+            formatted_items = []
+            for i, item in enumerate(items):
+                if isinstance(item, str):
+                    formatted_items.append(f"{i+1}. {item}")
+                elif isinstance(item, dict):
+                    # 尝试提取字典中的关键信息
+                    item_text = item.get('description', item.get('text', item.get('name', str(item))))
+                    formatted_items.append(f"{i+1}. {item_text}")
+                else:
+                    formatted_items.append(f"{i+1}. {str(item)}")
+            return "\n".join(formatted_items)
+        elif isinstance(items, dict):
+            # 处理字典格式，常见于布鲁姆分类目标等
+            formatted_items = []
+            for key, values in items.items():
+                if isinstance(values, list) and values:
+                    formatted_items.append(f"【{key}】: {', '.join(values)}")
+            return "\n".join(formatted_items) if formatted_items else "无"
+        else:
+            return str(items)
 
 # 创建一个全局的ContentDesignerAgent实例
 content_designer = ContentDesignerAgent()

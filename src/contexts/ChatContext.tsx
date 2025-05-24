@@ -42,6 +42,10 @@ type ChatContextType = {
   setIsGenerating: (isGenerating: boolean) => void;
   sendMessage: (content: string, background?: UserBackgroundType) => void;
   clientId: string;
+  // 新添加：课程生成状态控制
+  hasCourseGenerated: boolean;
+  setHasCourseGenerated: (hasGenerated: boolean) => void;
+  resetForNewTopic: () => void;
 };
 
 // Create context with a default value
@@ -74,7 +78,39 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [formattedPrompt, setFormattedPrompt] = useState<FormattedPromptType | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [clientId] = useState<string>(getClientId()); // 使用持久化的客户端ID
+  const [hasCourseGenerated, setHasCourseGenerated] = useState<boolean>(false); // 新添加：课程生成状态
   const socketRef = useRef<any>(null);
+
+  // 从localStorage初始化课程生成状态
+  useEffect(() => {
+    const storedPrompt = localStorage.getItem('initialPrompt');
+    if (storedPrompt) {
+      setInitialPrompt(storedPrompt);
+      setHasCourseGenerated(true); // 如果有存储的主题，说明已经生成过课程
+    }
+  }, []);
+
+  // 当initialPrompt改变时，更新localStorage并重置课程生成状态
+  useEffect(() => {
+    if (initialPrompt) {
+      localStorage.setItem('initialPrompt', initialPrompt);
+      setHasCourseGenerated(true);
+    } else {
+      localStorage.removeItem('initialPrompt');
+      setHasCourseGenerated(false);
+    }
+  }, [initialPrompt]);
+
+  // 重置所有状态为新主题
+  const resetForNewTopic = useCallback(() => {
+    setMessages([]);
+    setInitialPrompt('');
+    setUserBackground(null);
+    setFormattedPrompt(null);
+    setIsGenerating(false);
+    setHasCourseGenerated(false);
+    localStorage.removeItem('initialPrompt');
+  }, []);
 
   // Create formatted prompt for agents
   const createFormattedPrompt = useCallback((originalPrompt: string, background: UserBackgroundType): FormattedPromptType => {
@@ -217,6 +253,9 @@ ${JSON.stringify(formattedPrompt.userBackground, null, 2)}`;
     setIsGenerating,
     sendMessage,
     clientId, // 暴露clientId给组件使用
+    hasCourseGenerated,
+    setHasCourseGenerated,
+    resetForNewTopic,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

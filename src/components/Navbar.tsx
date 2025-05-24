@@ -3,6 +3,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useChat } from '@/contexts/ChatContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -12,11 +13,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Lock } from 'lucide-react';
+import { toast } from '@/components/ui/sonner';
 
 const Navbar: React.FC = () => {
   const location = useLocation();
   const { user, profile, signOut } = useAuth();
+  const { hasCourseGenerated } = useChat();
+
+  // 处理受限页面的点击事件
+  const handleRestrictedPageClick = (e: React.MouseEvent, pageName: string) => {
+    if (!hasCourseGenerated) {
+      e.preventDefault();
+      toast.error(`请先在首页输入学习主题生成课程，然后才能访问${pageName}页面`);
+    }
+  };
   
   return (
     <nav className="bg-white shadow-sm border-b border-gray-100">
@@ -32,7 +43,7 @@ const Navbar: React.FC = () => {
               <Link
                 to="/"
                 className={cn(
-                  "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium",
+                  "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors",
                   location.pathname === "/"
                     ? "border-primary text-gray-900"
                     : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
@@ -40,28 +51,54 @@ const Navbar: React.FC = () => {
               >
                 首页
               </Link>
-              <Link
-                to="/course-planning"
-                className={cn(
-                  "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium",
-                  location.pathname === "/course-planning"
-                    ? "border-primary text-gray-900"
-                    : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                )}
-              >
-                课程规划
-              </Link>
-              <Link
-                to="/interactive-learning"
-                className={cn(
-                  "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium",
-                  location.pathname === "/interactive-learning"
-                    ? "border-primary text-gray-900"
-                    : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                )}
-              >
-                互动学习
-              </Link>
+              
+              {/* 课程规划页面 - 条件性启用 */}
+              {hasCourseGenerated ? (
+                <Link
+                  to="/course-planning"
+                  className={cn(
+                    "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors",
+                    location.pathname === "/course-planning"
+                      ? "border-primary text-gray-900"
+                      : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  )}
+                >
+                  课程规划
+                </Link>
+              ) : (
+                <button
+                  onClick={(e) => handleRestrictedPageClick(e, "课程规划")}
+                  className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-400 cursor-not-allowed transition-colors"
+                  disabled
+                >
+                  <Lock className="w-3 h-3 mr-1" />
+                  课程规划
+                </button>
+              )}
+              
+              {/* 互动学习页面 - 条件性启用 */}
+              {hasCourseGenerated ? (
+                <Link
+                  to="/interactive-learning"
+                  className={cn(
+                    "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors",
+                    location.pathname === "/interactive-learning"
+                      ? "border-primary text-gray-900"
+                      : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  )}
+                >
+                  互动学习
+                </Link>
+              ) : (
+                <button
+                  onClick={(e) => handleRestrictedPageClick(e, "互动学习")}
+                  className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-400 cursor-not-allowed transition-colors"
+                  disabled
+                >
+                  <Lock className="w-3 h-3 mr-1" />
+                  互动学习
+                </button>
+              )}
             </div>
           </div>
           
