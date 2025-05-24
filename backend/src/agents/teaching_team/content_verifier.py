@@ -41,13 +41,15 @@ class ContentVerifierAgent:
         )
         logger.info("ContentVerifierAgent initialized")
     
-    async def verify_content(self, content: Dict[str, Any], learning_objectives: List[str]) -> Dict[str, Any]:
+    async def verify_content(self, content: Dict[str, Any], learning_objectives: List[str], 
+                           user_background: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         验证教学内容
         
         Args:
             content: 要验证的教学内容
             learning_objectives: 学习目标列表
+            user_background: 用户背景信息，包含年龄、学习目标、知识水平等（可选）
             
         Returns:
             Dict[str, Any]: 包含验证结果的字典
@@ -57,6 +59,23 @@ class ContentVerifierAgent:
         # 将内容转换为字符串形式
         content_str = json.dumps(content, ensure_ascii=False, indent=2)
         
+        # 构建用户背景信息部分
+        background_content = ""
+        if user_background:
+            background_content = f"""
+        
+        用户背景信息（请在评审时充分考虑）:
+        - 年龄/年级: {user_background.get('age', '未知')}
+        - 学习目标: {user_background.get('learningGoal', '未知')}
+        - 时间偏好: {user_background.get('timePreference', '未知')}
+        - 知识水平: {user_background.get('knowledgeLevel', '未知')}
+        - 目标受众: {user_background.get('targetAudience', '未知')}
+        
+        请特别评估：
+        1. 内容难度是否适合目标年龄和知识水平
+        2. 教学方法是否符合学习目标和时间偏好
+        3. 内容是否有助于实现个人学习目标"""
+
         # 构建发送给Agent的消息
         prompt = f"""
         请评审以下教学内容的质量和有效性：
@@ -66,6 +85,8 @@ class ContentVerifierAgent:
         
         教学内容:
         {content_str}
+        
+        {background_content}
         
         请从以下几个方面评审并给出分数（1-10分）和改进建议：
         1. 准确性：内容是否准确无误

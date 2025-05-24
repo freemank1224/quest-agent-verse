@@ -78,13 +78,14 @@ class TeacherAgent:
         self.client_sessions = {}
         logger.info(f"TeacherAgent initialized with memory manager: {memory_db_path}")
     
-    async def chat(self, client_id: str, message_content: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+    async def chat(self, client_id: str, message_content: str, user_background: Optional[Dict[str, Any]] = None, session_id: Optional[str] = None) -> Dict[str, Any]:
         """
         处理来自客户端的聊天消息，集成记忆管理功能
         
         Args:
             client_id: 客户端标识
             message_content: 消息内容
+            user_background: 用户背景信息（年龄、学习目标、时间偏好等）
             session_id: 会话ID，如果为None则自动生成
             
         Returns:
@@ -132,6 +133,24 @@ class TeacherAgent:
         
         # 构建包含上下文的提示
         context_info = []
+        
+        # 添加用户背景信息到上下文
+        if user_background:
+            background_context = []
+            if user_background.get("age"):
+                background_context.append(f"学习者年龄/年级: {user_background['age']}")
+            if user_background.get("learningGoal"):
+                background_context.append(f"学习目标: {user_background['learningGoal']}")
+            if user_background.get("timePreference"):
+                background_context.append(f"时间偏好: {user_background['timePreference']}")
+            if user_background.get("knowledgeLevel"):
+                background_context.append(f"知识水平: {user_background['knowledgeLevel']}")
+            if user_background.get("targetAudience"):
+                background_context.append(f"目标受众: {user_background['targetAudience']}")
+            
+            if background_context:
+                context_info.append("用户背景信息：\n" + "\n".join(background_context))
+                context_info.append("请根据用户背景调整回答的难度、语言风格和教学方法")
         
         if current_topic and current_topic != "一般学习":
             context_info.append(f"当前学习主题: {current_topic}")

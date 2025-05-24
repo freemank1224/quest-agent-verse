@@ -127,10 +127,40 @@ class AgentService:
     async def process_message(self, client_id: str, message_content: str) -> Dict[str, Any]:
         """
         处理从客户端接收到的消息
-        这里将根据消息内容，决定调用哪个Agent来处理
+        这里将解析用户背景信息并根据消息内容，决定调用哪个Agent来处理
         """
-        # 调用Teacher Agent处理聊天消息
-        response = await teacher.chat(client_id, message_content)
+        # 解析消息中的用户背景信息
+        user_background = self._extract_user_background(message_content)
+        
+        # 检查是否是课程规划请求（包含用户背景信息的首次请求）
+        if user_background and self._is_course_planning_request(message_content):
+            logger.info(f"检测到课程规划请求，用户背景信息: {user_background}")
+            
+            # 提取原始学习主题
+            original_topic = self._extract_original_topic(message_content)
+            
+            if original_topic:
+                # 调用课程规划Agent，传入用户背景信息
+                course_plan = await self.create_course_plan_with_background(
+                    topic=original_topic,
+                    user_background=user_background
+                )
+                
+                # 返回课程规划结果
+                response = {
+                    "content": f"已为您生成《{original_topic}》的个性化课程大纲！\n\n根据您的背景信息（{user_background.get('age', '')}，学习目标：{user_background.get('learningGoal', '')}，时间偏好：{user_background.get('timePreference', '')}），我为您量身定制了以下学习计划。请在课程规划页面查看详细内容。",
+                    "sender": "agent",
+                    "course_data": course_plan,
+                    "user_background": user_background
+                }
+            else:
+                response = {
+                    "content": "抱歉，我无法从您的消息中识别出具体的学习主题。请重新描述您想学习的内容。",
+                    "sender": "agent"
+                }
+        else:
+            # 普通聊天消息，调用Teacher Agent处理
+            response = await teacher.chat(client_id, message_content, user_background)
         
         # 添加消息ID和时间戳
         response["id"] = f"agent_{datetime.now().timestamp()}"
@@ -288,7 +318,7 @@ class AgentService:
                 ]
             }
 
-    async def get_course_content(self, section_id: str, topic: Optional[str] = None) -> Dict[str, Any]:
+    async def get_course_content(self, section_id: str, topic: Optional[str] = None, user_background: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         获取课程内容
         调用ContentDesigner Agent实现，支持缓存检查
@@ -327,7 +357,11 @@ class AgentService:
         }
         
         try:
-            result = await content_designer.create_content(section_info)
+            result = await content_designer.create_content(
+                section_info, 
+                course_topic=topic, 
+                user_background=user_background
+            )
             logger.info(f"ContentDesigner returned: {result}")
             
             # 格式化内容
@@ -438,6 +472,103 @@ class AgentService:
         }
         logger.info("Retrieved user progress")
         return progress
+
+    def _extract_user_background(self, message_content: str) -> Optional[Dict[str, Any]]:
+        """
+        从消息内容中提取用户背景信息
+        """
+        try:
+            # 查找用户背景信息标记
+            if "## 用户背景信息" in message_content:
+                lines = message_content.split('\n')
+                background_info = {}
+                
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("年龄/年级:"):
+                        background_info["age"] = line.split(":", 1)[1].strip()
+                    elif line.startswith("学习目标:"):
+                        background_info["learningGoal"] = line.split(":", 1)[1].strip()
+                    elif line.startswith("时间偏好:"):
+                        background_info["timePreference"] = line.split(":", 1)[1].strip()
+                    elif line.startswith("知识水平:"):
+                        background_info["knowledgeLevel"] = line.split(":", 1)[1].strip()
+                    elif line.startswith("目标受众:"):
+                        background_info["targetAudience"] = line.split(":", 1)[1].strip()
+                
+                return background_info if background_info else None
+                
+        except Exception as e:
+            logger.error(f"Error extracting user background: {e}")
+        
+        return None
+    
+    def _is_course_planning_request(self, message_content: str) -> bool:
+        """
+        判断是否是课程规划请求
+        """
+        # 检查是否包含课程规划相关的标识
+        planning_indicators = [
+            "## Agent处理指令",
+            "CoursePlanner",
+            "ContentGenerator", 
+            "Monitor",
+            "Verifier"
+        ]
+        
+        for indicator in planning_indicators:
+            if indicator in message_content:
+                return True
+        
+        return False
+    
+    def _extract_original_topic(self, message_content: str) -> Optional[str]:
+        """
+        从格式化消息中提取原始学习主题
+        """
+        try:
+            # 消息内容的第一行通常是原始主题
+            lines = message_content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith("#") and not line.startswith("年龄") and not line.startswith("学习目标"):
+                    return line
+        except Exception as e:
+            logger.error(f"Error extracting original topic: {e}")
+        
+        return None
+    
+    async def create_course_plan_with_background(self, topic: str, user_background: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        使用用户背景信息创建个性化课程规划
+        """
+        logger.info(f"Creating personalized course plan for topic: {topic} with background: {user_background}")
+        
+        # 调用CoursePlanner Agent，传入用户背景信息作为独立参数
+        result = await course_planner.create_course_plan(
+            topic=topic,
+            learning_goal=user_background.get("learningGoal"),
+            target_audience=user_background.get("age"),  # 使用年龄作为目标受众
+            knowledge_level=user_background.get("knowledgeLevel"),
+            store_to_memory=True
+        )
+        
+        # 存储用户背景信息到结果中，以便后续Agent使用
+        if isinstance(result, dict):
+            result["user_background"] = user_background
+            result["personalization_applied"] = True
+        
+        # 格式化结果
+        formatted_result = self._format_course_result(result, topic)
+        
+        # 保存包含用户背景信息的课程到本地文件
+        try:
+            formatted_result["user_background"] = user_background
+            self._save_course_to_file(topic, formatted_result)
+        except Exception as e:
+            logger.error(f"Error saving personalized course to file: {e}")
+        
+        return formatted_result
 
 # 创建一个全局的AgentService实例
 agent_service = AgentService()

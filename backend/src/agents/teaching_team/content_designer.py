@@ -58,7 +58,8 @@ class ContentDesignerAgent:
     
     async def create_content(self, section_info: Dict[str, Any], 
                            course_id: Optional[int] = None,
-                           course_topic: Optional[str] = None) -> Dict[str, Any]:
+                           course_topic: Optional[str] = None,
+                           user_background: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         为特定章节创建内容，并存储到记忆管理器中
         
@@ -66,6 +67,7 @@ class ContentDesignerAgent:
             section_info: 包含章节信息的字典，应当包含id, title, description等字段
             course_id: 课程ID（可选）
             course_topic: 课程主题（可选，用于搜索相关内容）
+            user_background: 用户背景信息，包含年龄、学习目标、知识水平等（可选）
             
         Returns:
             Dict[str, Any]: 包含章节内容的字典
@@ -126,6 +128,24 @@ class ContentDesignerAgent:
   ]
 }'''
         
+        # 构建用户背景信息部分
+        background_content = ""
+        if user_background:
+            background_content = f"""
+
+## 用户背景信息（请在设计内容时充分考虑）
+- 年龄/年级: {user_background.get('age', '未知')}
+- 学习目标: {user_background.get('learningGoal', '未知')}
+- 时间偏好: {user_background.get('timePreference', '未知')}
+- 知识水平: {user_background.get('knowledgeLevel', '未知')}
+- 目标受众: {user_background.get('targetAudience', '未知')}
+
+请根据以上背景信息调整：
+1. 内容难度和深度（根据年龄和知识水平）
+2. 教学方法和活动设计（符合学习目标和时间偏好）
+3. 示例和练习的复杂度
+4. 语言表达的方式和风格"""
+
         content = f"""请根据以下章节信息，设计详细的教学内容：
 
 章节ID: {section_info.get('id', 'Unknown')}
@@ -136,7 +156,9 @@ class ContentDesignerAgent:
 {self._format_list(section_info.get('learning_objectives', []))}
 
 关键要点:
-{self._format_list(section_info.get('key_points', []))}"""
+{self._format_list(section_info.get('key_points', []))}
+
+{background_content}"""
 
         if context_info:
             content += f"\n\n课程上下文:\n{chr(10).join(context_info)}"

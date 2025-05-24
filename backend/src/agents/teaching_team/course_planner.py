@@ -245,7 +245,7 @@ class CoursePlannerAgent:
    - **课标对齐情况**（必须包含）
    - 子节列表（如果有）
 
-请以JSON格式返回你的回答，结构如下：
+请严格按照以下JSON格式返回你的回答，结构如下：
 {json_template}
 
 **注意事项：**
