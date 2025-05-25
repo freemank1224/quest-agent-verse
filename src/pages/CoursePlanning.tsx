@@ -121,7 +121,66 @@ const CoursePlanning = () => {
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         console.log('Course loaded from localStorage:', storageKey);
-        return parsedData;
+        console.log('Raw cached data structure:', {
+          hasSections: Array.isArray(parsedData.sections),
+          hasChapters: Array.isArray(parsedData.chapters),
+          sectionsCount: parsedData.sections?.length || 0,
+          chaptersCount: parsedData.chapters?.length || 0
+        });
+        
+        // 处理数据结构转换：如果是旧的sections格式，转换为chapters格式
+        let chaptersData = [];
+        if (Array.isArray(parsedData.sections)) {
+          console.log('Converting cached sections to chapters format');
+          chaptersData = parsedData.sections.map((section, index) => ({
+            id: section?.id || `chapter-${index + 1}`,
+            title: section?.title || `第${index + 1}章`,
+            description: section?.description || '',
+            estimated_duration: section?.estimated_duration,
+            bloom_focus: section?.bloom_focus,
+            learning_objectives: section?.learning_objectives,
+            key_concepts: section?.key_points || section?.key_concepts,
+            teaching_resources: section?.teaching_resources,
+            content_design_guidance: section?.content_design_guidance,
+            curriculum_alignment: section?.curriculum_alignment,
+            sections: Array.isArray(section?.subsections) ? section.subsections.map((subsection, subIndex) => ({
+              id: subsection?.id || `${section?.id || (index + 1)}.${subIndex + 1}`,
+              title: subsection?.title || `第${subIndex + 1}节`,
+              content_type: subsection?.content_type,
+              activity_suggestion: subsection?.activity_suggestion
+            })) : [
+              {
+                id: `${section?.id || (index + 1)}.1`,
+                title: `${section?.title || `第${index + 1}章`} - 详细内容`
+              }
+            ]
+          }));
+        } else if (Array.isArray(parsedData.chapters)) {
+          console.log('Using existing cached chapters format');
+          chaptersData = parsedData.chapters;
+        } else {
+          console.warn('No valid data structure found in cached data');
+          return null;
+        }
+        
+        console.log('Final converted chapters data:', {
+          count: chaptersData.length,
+          firstChapter: chaptersData[0],
+          hasValidSections: chaptersData[0]?.sections?.length > 0
+        });
+        
+        // 清理数据，移除缓存相关字段，只保留CourseOutline接口的字段
+        const cleanedData: CourseOutline = {
+          title: parsedData.title || parsedData.course_title,
+          course_title: parsedData.course_title || parsedData.title,
+          course_description: parsedData.course_description,
+          background_analysis: parsedData.background_analysis,
+          bloom_taxonomy_objectives: parsedData.bloom_taxonomy_objectives,
+          curriculum_alignment: parsedData.curriculum_alignment,
+          chapters: chaptersData
+        };
+        
+        return cleanedData;
       }
     } catch (error) {
       console.error('Error loading course from localStorage:', error);
@@ -154,7 +213,17 @@ const CoursePlanning = () => {
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         console.log('Section loaded from localStorage:', storageKey);
-        return parsedData;
+        
+        // 清理数据，移除缓存相关字段，只保留CourseContent接口的字段
+        const cleanedData: CourseContent = {
+          title: parsedData.title,
+          mainContent: parsedData.mainContent,
+          keyPoints: parsedData.keyPoints || [],
+          images: parsedData.images || [],
+          curriculumAlignment: parsedData.curriculumAlignment || []
+        };
+        
+        return cleanedData;
       }
     } catch (error) {
       console.error('Error loading section from localStorage:', error);
@@ -175,17 +244,39 @@ const CoursePlanning = () => {
         setIsLoadingOutline(true);
         console.log('Fetching course outline for:', initialPrompt);
         
+        // Debug: 检查所有localStorage课程键
+        const allKeys = [];
+        for(let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if(key && key.startsWith('course_outline_')) {
+            allKeys.push(key);
+          }
+        }
+        console.log('All course keys in localStorage:', allKeys);
+        
         // 1. 首先检查localStorage缓存
         const cachedOutline = loadCourseFromStorage(initialPrompt);
         if (cachedOutline) {
           console.log('Using cached course outline from localStorage');
+          console.log('Cached outline data:', cachedOutline);
+          console.log('Cached chapters count:', cachedOutline.chapters?.length || 0);
+          
           setOutline(cachedOutline);
           setCourseSource('localStorage');
           setHasCourseGenerated(true); // 确保状态同步
           
           // Select the first section by default
-          if (cachedOutline.chapters.length > 0 && cachedOutline.chapters[0].sections.length > 0) {
-            setSelectedSection(cachedOutline.chapters[0].sections[0].id);
+          if (cachedOutline.chapters && cachedOutline.chapters.length > 0) {
+            console.log('First chapter:', cachedOutline.chapters[0]);
+            console.log('First chapter sections:', cachedOutline.chapters[0].sections);
+            if (cachedOutline.chapters[0].sections && cachedOutline.chapters[0].sections.length > 0) {
+              console.log('Setting default section:', cachedOutline.chapters[0].sections[0].id);
+              setSelectedSection(cachedOutline.chapters[0].sections[0].id);
+            } else {
+              console.warn('No sections found in first chapter of cached outline');
+            }
+          } else {
+            console.warn('No chapters found in cached outline');
           }
           setIsLoadingOutline(false);
           return;
@@ -195,9 +286,43 @@ const CoursePlanning = () => {
         const existsResult = await checkCourseExists(initialPrompt);
         if (existsResult.exists) {
           console.log(`Course found in ${existsResult.source}, using existing course`);
+          console.log('API course data:', existsResult.course_data);
           const courseData = existsResult.course_data;
           
-          // 验证和清理数据 - 支持新旧格式
+          // 验证和清理数据 - 支持新旧格式和数据结构转换
+          let chaptersData = [];
+          
+          // 处理数据结构：如果是sections格式，转换为chapters格式
+          if (Array.isArray(courseData?.sections)) {
+            console.log('Converting sections to chapters format');
+            chaptersData = courseData.sections.map((section, index) => ({
+              id: section?.id || `chapter-${index + 1}`,
+              title: section?.title || `第${index + 1}章`,
+              description: section?.description || '',
+              estimated_duration: section?.estimated_duration,
+              bloom_focus: section?.bloom_focus,
+              learning_objectives: section?.learning_objectives,
+              key_concepts: section?.key_points || section?.key_concepts,
+              teaching_resources: section?.teaching_resources,
+              content_design_guidance: section?.content_design_guidance,
+              curriculum_alignment: section?.curriculum_alignment,
+              sections: Array.isArray(section?.subsections) ? section.subsections.map((subsection, subIndex) => ({
+                id: subsection?.id || `${section?.id || (index + 1)}.${subIndex + 1}`,
+                title: subsection?.title || `第${subIndex + 1}节`,
+                content_type: subsection?.content_type,
+                activity_suggestion: subsection?.activity_suggestion
+              })) : [
+                {
+                  id: `${section?.id || (index + 1)}.1`,
+                  title: `${section?.title || `第${index + 1}章`} - 详细内容`
+                }
+              ]
+            }));
+          } else if (Array.isArray(courseData?.chapters)) {
+            console.log('Using existing chapters format');
+            chaptersData = courseData.chapters;
+          }
+          
           const validatedData: CourseOutline = {
             // 处理标题 - 支持新格式(course_title)和旧格式(title)
             title: courseData?.course_title || courseData?.title || `${initialPrompt} 课程大纲`,
@@ -206,17 +331,29 @@ const CoursePlanning = () => {
             background_analysis: courseData?.background_analysis,
             bloom_taxonomy_objectives: courseData?.bloom_taxonomy_objectives,
             curriculum_alignment: courseData?.curriculum_alignment,
-            chapters: Array.isArray(courseData?.chapters) ? courseData.chapters : []
+            chapters: chaptersData
           };
+          
+          console.log('Raw data type:', Array.isArray(courseData?.sections) ? 'sections' : 'chapters');
+          console.log('Converted chapters count:', validatedData.chapters.length);
           
           // 确保每个章节都有必要的属性
           validatedData.chapters = validatedData.chapters.map((chapter, index) => ({
             id: chapter?.id || `chapter-${index + 1}`,
             title: chapter?.title || `第${index + 1}章`,
             description: chapter?.description || '',
+            estimated_duration: chapter?.estimated_duration,
+            bloom_focus: chapter?.bloom_focus,
+            learning_objectives: chapter?.learning_objectives,
+            key_concepts: chapter?.key_concepts,
+            teaching_resources: chapter?.teaching_resources,
+            content_design_guidance: chapter?.content_design_guidance,
+            curriculum_alignment: chapter?.curriculum_alignment,
             sections: Array.isArray(chapter?.sections) ? chapter.sections.map((section, sectionIndex) => ({
               id: section?.id || `${chapter?.id || (index + 1)}.${sectionIndex + 1}`,
-              title: section?.title || `第${sectionIndex + 1}节`
+              title: section?.title || `第${sectionIndex + 1}节`,
+              content_type: section?.content_type,
+              activity_suggestion: section?.activity_suggestion
             })) : [
               {
                 id: `${chapter?.id || (index + 1)}.1`,
@@ -225,6 +362,9 @@ const CoursePlanning = () => {
             ]
           }));
 
+          console.log('Final validated data:', validatedData);
+          console.log('Final chapters count:', validatedData.chapters.length);
+          
           setOutline(validatedData);
           setCourseSource(existsResult.source);
           setHasCourseGenerated(true); // 确保状态同步
@@ -234,7 +374,10 @@ const CoursePlanning = () => {
           
           // Select the first section by default
           if (validatedData.chapters.length > 0 && validatedData.chapters[0].sections.length > 0) {
+            console.log('Setting default section from API:', validatedData.chapters[0].sections[0].id);
             setSelectedSection(validatedData.chapters[0].sections[0].id);
+          } else {
+            console.warn('No sections found in API course data');
           }
           setIsLoadingOutline(false);
           return;
@@ -253,7 +396,40 @@ const CoursePlanning = () => {
         
         console.log('Raw API response:', data);
         
-        // 验证和清理数据 - 支持新旧格式
+        // 验证和清理数据 - 支持新旧格式和数据结构转换
+        let chaptersData = [];
+        
+        // 处理数据结构：如果是sections格式，转换为chapters格式
+        if (Array.isArray(data?.sections)) {
+          console.log('Converting new course sections to chapters format');
+          chaptersData = data.sections.map((section, index) => ({
+            id: section?.id || `chapter-${index + 1}`,
+            title: section?.title || `第${index + 1}章`,
+            description: section?.description || '',
+            estimated_duration: section?.estimated_duration,
+            bloom_focus: section?.bloom_focus,
+            learning_objectives: section?.learning_objectives,
+            key_concepts: section?.key_points || section?.key_concepts,
+            teaching_resources: section?.teaching_resources,
+            content_design_guidance: section?.content_design_guidance,
+            curriculum_alignment: section?.curriculum_alignment,
+            sections: Array.isArray(section?.subsections) ? section.subsections.map((subsection, subIndex) => ({
+              id: subsection?.id || `${section?.id || (index + 1)}.${subIndex + 1}`,
+              title: subsection?.title || `第${subIndex + 1}节`,
+              content_type: subsection?.content_type,
+              activity_suggestion: subsection?.activity_suggestion
+            })) : [
+              {
+                id: `${section?.id || (index + 1)}.1`,
+                title: `${section?.title || `第${index + 1}章`} - 详细内容`
+              }
+            ]
+          }));
+        } else if (Array.isArray(data?.chapters)) {
+          console.log('Using existing new course chapters format');
+          chaptersData = data.chapters;
+        }
+        
         const validatedData: CourseOutline = {
           // 处理标题 - 支持新格式(course_title)和旧格式(title)
           title: data?.course_title || data?.title || `${initialPrompt} 课程大纲`,
@@ -262,17 +438,29 @@ const CoursePlanning = () => {
           background_analysis: data?.background_analysis,
           bloom_taxonomy_objectives: data?.bloom_taxonomy_objectives,
           curriculum_alignment: data?.curriculum_alignment,
-          chapters: Array.isArray(data?.chapters) ? data.chapters : []
+          chapters: chaptersData
         };
+        
+        console.log('New course data type:', Array.isArray(data?.sections) ? 'sections' : 'chapters');
+        console.log('New course chapters count:', validatedData.chapters.length);
         
         // 确保每个章节都有必要的属性
         validatedData.chapters = validatedData.chapters.map((chapter, index) => ({
           id: chapter?.id || `chapter-${index + 1}`,
           title: chapter?.title || `第${index + 1}章`,
           description: chapter?.description || '',
+          estimated_duration: chapter?.estimated_duration,
+          bloom_focus: chapter?.bloom_focus,
+          learning_objectives: chapter?.learning_objectives,
+          key_concepts: chapter?.key_concepts,
+          teaching_resources: chapter?.teaching_resources,
+          content_design_guidance: chapter?.content_design_guidance,
+          curriculum_alignment: chapter?.curriculum_alignment,
           sections: Array.isArray(chapter?.sections) ? chapter.sections.map((section, sectionIndex) => ({
             id: section?.id || `${chapter?.id || (index + 1)}.${sectionIndex + 1}`,
-            title: section?.title || `第${sectionIndex + 1}节`
+            title: section?.title || `第${sectionIndex + 1}节`,
+            content_type: section?.content_type,
+            activity_suggestion: section?.activity_suggestion
           })) : [
             {
               id: `${chapter?.id || (index + 1)}.1`,
@@ -336,7 +524,12 @@ const CoursePlanning = () => {
 
   useEffect(() => {
     const fetchSectionContent = async () => {
-      if (!selectedSection || !initialPrompt) return;
+      if (!selectedSection || !initialPrompt) {
+        console.log('Skipping section content fetch - missing data:', { selectedSection, initialPrompt });
+        return;
+      }
+
+      console.log('Fetching section content for:', { selectedSection, initialPrompt });
 
       try {
         setIsLoadingContent(true);
@@ -345,6 +538,7 @@ const CoursePlanning = () => {
         const cachedContent = loadSectionFromStorage(initialPrompt, selectedSection);
         if (cachedContent) {
           console.log('Using cached section content from localStorage');
+          console.log('Cached content:', cachedContent);
           setContent(cachedContent);
           setIsLoadingContent(false);
           return;
@@ -353,10 +547,12 @@ const CoursePlanning = () => {
         // 2. 如果没有缓存，从API获取
         console.log('Fetching section content from API');
         const data = await getCourseContent(selectedSection, initialPrompt);
+        console.log('API section content response:', data);
         setContent(data);
         
         // 保存到localStorage
         saveSectionToStorage(initialPrompt, selectedSection, data);
+        console.log('Section content saved to localStorage');
         
       } catch (error) {
         console.error('Error fetching section content:', error);
@@ -373,6 +569,21 @@ const CoursePlanning = () => {
     navigate('/interactive-learning');
   };
 
+  // 临时调试函数 - 清理localStorage缓存
+  const clearCourseCache = () => {
+    const keys = [];
+    for(let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if(key && (key.startsWith('course_outline_') || key.startsWith('course_section_'))) {
+        keys.push(key);
+      }
+    }
+    keys.forEach(key => localStorage.removeItem(key));
+    console.log('Cleared course cache keys:', keys);
+    toast.info(`已清理 ${keys.length} 个缓存项`);
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
@@ -385,15 +596,25 @@ const CoursePlanning = () => {
           <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
             <div className="flex items-start justify-between mb-3">
               <h2 className="text-lg font-bold text-gray-900 font-display">课程概览</h2>
-              {courseSource && (
-                <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
-                  {courseSource === 'localStorage' && '📱 缓存'}
-                  {courseSource === 'memory' && '🧠 记忆'}
-                  {courseSource === 'file' && '📄 文件'}
-                  {courseSource === 'api' && '🆕 新建'}
-                  {courseSource === 'fallback' && '⚠️ 默认'}
-                </div>
-              )}
+              <div className="flex gap-2">
+                {courseSource && (
+                  <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
+                    {courseSource === 'localStorage' && '📱 缓存'}
+                    {courseSource === 'memory' && '🧠 记忆'}
+                    {courseSource === 'file' && '📄 文件'}
+                    {courseSource === 'api' && '🆕 新建'}
+                    {courseSource === 'fallback' && '⚠️ 默认'}
+                  </div>
+                )}
+                {/* 临时调试按钮 */}
+                <button 
+                  onClick={clearCourseCache}
+                  className="text-xs text-red-500 hover:text-red-700 px-2 py-1 bg-red-50 hover:bg-red-100 rounded-full transition-colors"
+                  title="清理缓存 (调试用)"
+                >
+                  🗑️
+                </button>
+              </div>
             </div>
             
             {isLoadingOutline ? (
