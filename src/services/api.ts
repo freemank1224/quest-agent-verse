@@ -133,6 +133,17 @@ export const getCourseList = async (): Promise<any> => {
   }
 };
 
+// 搜索课程
+export const searchCourses = async (keywords: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/course/search?keywords=${encodeURIComponent(keywords)}`);
+    return await checkResponse(response);
+  } catch (error) {
+    console.error('Error searching courses:', error);
+    throw error;
+  }
+};
+
 // 获取用户学习进度
 export const getUserProgress = async (): Promise<any> => {
   try {

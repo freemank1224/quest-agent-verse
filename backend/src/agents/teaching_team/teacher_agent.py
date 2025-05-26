@@ -36,7 +36,8 @@ class TeacherAgent:
         # 使用 Ollama 作为主要模型
         self.agent = Agent(
             name="Teacher",
-            model=Ollama(id="qwen3:32b", host="http://localhost:11434"),
+            model=xAI(id="grok-3-mini-beta", api_key=os.environ.get('XAI_API_KEY')),
+            # model=Ollama(id="qwen3:32b", host="http://localhost:11434"),
             memory=Memory(),
             tools=[
                 ReasoningTools(),
